@@ -1,0 +1,85 @@
+.status-container {
+  display: flex;
+  flex-direction: column;}
+
+.status-cards-row {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  margin-bottom: 0px;
+}
+.status-card {
+  min-width: 100px;
+  height: 100px; /* Hauteur fixe égale à la largeur */
+  padding: 5px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  
+}
+
+.status-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px; 
+}
+.status-breakdown {
+  font-size: 0.8rem;
+  margin-top: 5px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.activation-count {
+  color: #36A2EB;
+}
+
+.plainte-count {
+  color: #FF6384;
+}
+
+.status-card {
+  /* Vos styles existants */
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.status-card-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+}
+.chart-container{
+  height: 320px;
+  margin-top: 2px  !important;
+}
+.status-icon {
+  font-size: 18px;
+}
+
+.status-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+  text-align: center; 
+  margin: auto 0; /* Centre verticalement */
+}
+
+
+@media (max-width: 768px) {
+  .status-cards-row {
+    flex-wrap: wrap;
+  }
+  
+  .status-card {
+    min-width: calc(50% - 10px);
+    height: auto;
+    aspect-ratio: 1; /* Garde un ratio 1:1 */
+  }
+}

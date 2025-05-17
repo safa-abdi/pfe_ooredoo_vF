@@ -1,0 +1,101 @@
+.activation-stats-chart {
+    width: 100%;
+    height: 100%;
+    padding: 1rem;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.activation-stats-chart .recharts-legend-item-text {
+    font-size: 0.85rem;
+    color: #495057;
+}
+
+.activation-stats-chart .recharts-tooltip {
+    background-color: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem 1rem;
+}
+
+.activation-stats-chart .recharts-tooltip-label {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.activation-stats-chart .recharts-tooltip-item {
+    font-size: 0.85rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    margin: 0.25rem 0;
+}
+
+.activation-stats-chart .recharts-tooltip-item-value {
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+
+.activation-stats-chart .recharts-default-tooltip {
+    border: none !important;
+}
+
+.activation-stats-chart .recharts-cartesian-axis-tick-value {
+    font-size: 0.8rem;
+    fill: #6c757d;
+}
+
+.activation-stats-chart .recharts-cartesian-axis-line {
+    stroke: #e9ecef;
+}
+
+.activation-stats-chart .recharts-cartesian-grid line {
+    stroke: #f1f3f5;
+}
+
+.activation-stats-chart .recharts-bar-rectangle:hover {
+    opacity: 0.8;
+}
+
+/* Couleurs spécifiques pour chaque barre */
+.activation-stats-chart .recharts-bar:nth-child(1) .recharts-bar-rectangle {
+    fill: #28a745;
+}
+
+.activation-stats-chart .recharts-bar:nth-child(2) .recharts-bar-rectangle {
+    fill: #ffc107;
+}
+
+.activation-stats-chart .recharts-bar:nth-child(3) .recharts-bar-rectangle {
+    fill: #dc3545;
+}
+
+/* Légende */
+.activation-stats-chart .recharts-legend-wrapper {
+    bottom: -10px !important;
+}
+
+.activation-start-chart .recharts-legend-item {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 1rem;
+}
+
+.activation-stats-chart .recharts-legend-item .recharts-surface {
+    margin-right: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .activation-stats-chart {
+        padding: 0.5rem;
+    }
+    
+    .activation-stats-chart .recharts-legend-item {
+        margin-right: 0.5rem;
+    }
+}

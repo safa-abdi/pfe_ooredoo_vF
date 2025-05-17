@@ -1,0 +1,265 @@
+/* Styles pour le modal */
+.modal-overlay-plaintePblem {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+    padding-top: 80px;
+}
+
+.modal-content-plaintePblem {
+    background-color: white;
+    padding: 25px;
+    border-radius: 10px;
+    width: 60%;
+    max-width: 700px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.close-modal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+}
+
+.close-modal:hover {
+    color: #333;
+}
+
+/* Styles pour les détails */
+.plainte-details {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.detail-row {
+    display: flex;
+    align-items: flex-start;
+}
+
+.detail-label {
+    font-weight: bold;
+    min-width: 150px;
+    color: #555;
+}
+
+.detail-value {
+    flex: 1;
+}
+
+/* Styles pour le formulaire d'édition */
+.edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.form-group label {
+    font-weight: bold;
+    color: #555;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* Styles pour les boutons */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.modal-actions button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.save-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.cancel-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Style pour le texte à côté du spinner */
+.save-btn span {
+    margin-left: 8px;
+}
+
+.edit-btnProblemPlaint {
+    background-color: #4CAF50 !important;
+    color: white;
+}
+
+.edit-btnProblemPlaint:hover {
+    background-color: #3e8e41;
+}
+
+.save-btn {
+    background-color: #2196F3;
+    color: white;
+}
+
+.save-btn:hover {
+    background-color: #0b7dda;
+}
+
+.close-btn, .cancel-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+.close-btn:hover, .cancel-btn:hover {
+    background-color: #d32f2f;
+}
+
+/* Styles pour les statuts */
+.status-nouveau {
+    color: #ff9800;
+    font-weight: bold;
+}
+
+.status-en-cours {
+    color: #2196F3;
+    font-weight: bold;
+}
+
+.status-résolu {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.status-fermé {
+    color: #9E9E9E;
+    font-weight: bold;
+}
+.error-messagePlaintePblem {
+    background-color: #ffdddd;
+    color: #d8000c;
+    padding: 10px;
+    border: 1px solid #d8000c;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.success-messagePlaintePblem {
+    position: fixed;
+    top: 50%;
+    left: 40%;
+    transform: translate(-50%, -50%);
+    background-color: #4CAF50;
+    color: white;
+    padding: 20px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    font-size: 18px;
+    z-index: 1001;
+    animation: fadeInOut 2s ease-in-out;
+  }
+  
+  /* Animation (optionnel) */
+  @keyframes fadeInOut {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  
+@media (max-width: 1024px) {
+    .modal-content-plaintePblem {
+        width: 80%;
+    }
+}
+
+@media (max-width: 768px) {
+    .modal-content-plaintePblem {
+        width: 90%;
+        padding: 20px;
+    }
+
+    .detail-row {
+        flex-direction: column;
+    }
+
+    .detail-label {
+        min-width: unset;
+    }
+
+    .modal-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .modal-actions button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-content-plaintePblem {
+        width: 95%;
+        padding: 15px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 0.9rem;
+    }
+
+    .close-modal {
+        top: 10px;
+        right: 10px;
+        font-size: 1.25rem;
+    }
+}

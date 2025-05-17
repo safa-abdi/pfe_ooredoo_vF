@@ -1,0 +1,52 @@
+.plaintes-page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    
+    background-color: var(--background-color);
+}
+  .toggle-filters-btnPlainte{
+    color: #ffffff;
+    border-color: #414042;
+    margin-bottom: 20px;
+    background-color: #414042;
+    margin-left: 15px;
+    margin-top: 5px;
+  }
+  .top-buttons {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 20px;
+    background-color: #f9f9f9;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .navbar-vertical .nav-link {
+    display: block;
+    padding: 10px 15px;
+    color: #333;
+    text-decoration: none;
+  }
+  
+  .navbar-vertical .nav-link:hover,
+  .navbar-vertical .nav-link.active {
+    background-color: #f0f0f0;
+    font-weight: bold;
+  }
+  
+  .submenu {
+    list-style: none;
+    padding-left: 20px;
+  }
+  
+  .submenu li a {
+    padding: 8px 15px;
+    display: block;
+    color: #555;
+    text-decoration: none;
+  }
+  
+  .submenu li a:hover {
+    background-color: #e6e6e6;
+  }
+  

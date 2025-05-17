@@ -1,0 +1,18 @@
+<div>
+  <h1>Confirmation de prélèvement</h1>
+  <p>Bon DPM: {{bonNumber}}</p>
+  <p>Date de prélèvement: {{date}}</p>
+  <p>De: {{toCompany}}</p>
+  <p>À: {{fromCompany}} </p>
+  
+  <h2>Produits:</h2>
+  <ul>
+    {{#each products}}
+      <li>{{name}} ({{reference}}) - Quantité: {{quantity}}</li>
+    {{/each}}
+  </ul>
+
+  {{#if hasAttachment}}
+    <p>Voir le PDF en pièce jointe pour plus de détails.</p>
+  {{/if}}
+</div>

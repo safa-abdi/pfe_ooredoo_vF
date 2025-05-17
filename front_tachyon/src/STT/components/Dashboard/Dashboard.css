@@ -1,0 +1,239 @@
+/* Dashboard.css - Version améliorée */
+
+/* Variables CSS */
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2c3e50;
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --light-gray: #ecf0f1;
+    --medium-gray: #bdc3c7;
+    --dark-gray: #7f8c8d;
+    --white: #ffffff;
+    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
+  }
+  
+  /* Structure de base */
+  .dashboard-container {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    min-height: 100vh;
+    background-color: #f5f7fa;
+    margin-top: 25px;
+  }
+  
+  .main-content {
+    padding: 2rem;
+    overflow-y: auto;
+    max-height: 100vh;
+  }
+  
+  /* En-tête */
+  .main-content h1 {
+    color: var(--secondary-color);
+    margin-bottom: 1.5rem;
+    font-size: 1.8rem;
+    font-weight: 600;
+    border-bottom: 2px solid var(--light-gray);
+    padding-bottom: 0.5rem;
+  }
+  
+  /* Cartes de statistiques */
+  .stats-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .stats-card {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    transition: var(--transition);
+    border-top: 4px solid var(--primary-color);
+  }
+  
+  .stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .stats-card h3 {
+    color: var(--dark-gray);
+    font-size: 1rem;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+  
+  .stats-card p {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--secondary-color);
+  }
+  
+  /* Section des graphiques */
+  .charts-section {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  @media (min-width: 1200px) {
+    .charts-section {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  
+  .chart-container {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+  }
+  
+  .chart-container h2 {
+    font-size: 1.3rem;
+    color: var(--secondary-color);
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+  }
+  
+  /* Section des branches */
+  .branches-section {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+  }
+  
+  .branches-section h2 {
+    font-size: 1.3rem;
+    color: var(--secondary-color);
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+  }
+  
+  .branches-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .branch-card {
+    background: var(--white);
+    border: 1px solid var(--light-gray);
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    transition: var(--transition);
+  }
+  
+  .branch-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary-color);
+  }
+  
+  .branch-card h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--secondary-color);
+  }
+  
+  .branch-card p {
+    margin: 0.5rem 0;
+    color: var(--dark-gray);
+  }
+  
+  /* États */
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-size: 1.2rem;
+    color: var(--secondary-color);
+  }
+  
+  .error {
+    padding: 2rem;
+    text-align: center;
+    color: var(--danger-color);
+    background: rgba(231, 76, 60, 0.1);
+    border-radius: var(--border-radius);
+    margin: 2rem;
+  }
+  
+  .error button {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  
+  .error button:hover {
+    background: #c0392b;
+  }
+  
+  /* Animation de chargement */
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .loading-spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top: 4px solid var(--primary-color);
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-right: 1rem;
+  }
+  
+  /* Améliorations pour les graphiques */
+  .recharts-wrapper {
+    margin: 0 auto;
+  }
+  
+  .recharts-legend-item {
+    font-size: 0.9rem;
+  }
+  
+  .recharts-tooltip {
+    background: var(--white) !important;
+    border: 1px solid var(--light-gray) !important;
+    border-radius: var(--border-radius) !important;
+    box-shadow: var(--box-shadow) !important;
+    padding: 0.5rem !important;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .dashboard-container {
+      grid-template-columns: 1fr;
+    }
+    
+    .main-content {
+      padding: 1rem;
+    }
+    
+    .stats-summary {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .branches-grid {
+      grid-template-columns: 1fr;
+    }
+  }

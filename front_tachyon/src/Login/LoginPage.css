@@ -1,0 +1,246 @@
+/* ANIMATION DES LETTRES */
+button[type="submit"] {
+  background-color: #007BFF !important;
+  border: #007BFF;
+}
+
+.BValid {
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: 35%;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+@keyframes hideLetters {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* SPINNER DE CHARGEMENT */
+@keyframes spin {
+  to {
+    transform: rotate(360deg) translate(-50%, -50%);
+  }
+}
+
+
+/* STYLES GÉNÉRAUX */
+.forgot-password {
+  margin: 10px 0;
+  text-align: center;
+}
+
+
+
+.forgot-link {
+  color: #6c757d;
+  text-decoration: none;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+/* CONTAINER PRINCIPAL */
+.back_container {
+  font-family: 'Tajawal', sans-serif;  
+  font-weight: 700;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  background-color: #f3f0f0;
+  padding: 17px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+.main-container {
+  display: flex;
+  flex-direction: row;
+  width: 90%;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to right, #f9f9f9, #ffffff);
+  padding: 60px;
+  overflow: hidden;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+}
+
+/* LIGNE VERTICALE */
+.vertical-line {
+  border-left: 1.5px solid #ED1C24;
+  height: 450px;
+  margin-left: 120px;
+  margin-top: 100px;
+}
+
+.red_title{
+  color: #ED1C24;
+  font-family: 'Tajawal', sans-serif;  
+
+}
+/* BOUTON DE VALIDATION */
+
+
+.BTN_Valide:hover {
+  background-color: white;
+  transform: scale(1.05);
+}
+
+.BTN_Valide:disabled {
+  background-color: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* LOGO */
+.logo-container {
+  position: absolute;
+  top: -20px;
+  right: 20px;
+  z-index: 10;
+}
+
+.logo {
+  width: 150px;
+  height: 140px;
+}
+/* SECTION LOGIN */
+.login-section {
+  flex: 1;
+  background-color: white;
+  padding: 40px;
+  border-radius: 12px;
+  margin-top: 70px;
+  margin-left: 90px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+}
+
+.login-section h1, .login-section h2, .login-section p {
+  font-family: 'Tajawal', sans-serif;  
+  font-weight: 700;
+}
+.form-label{
+  font-family: 'Tajawal', sans-serif;  
+  font-weight:700;
+}
+.login-section h1 {
+  padding-bottom: 50px;
+  text-align: center;
+  color: black;
+  font-size: 2vw;
+}
+
+/* ANIMATION DES LETTRES EN CERCLE */
+.animation-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin: 0 50px 75px 140px;
+  border-radius: 20px;
+  width: 500px;
+  height: 500px;
+  overflow: visible;
+}
+
+.circle-letter {
+  position: absolute;
+  width: 85px;
+  height: 85px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ED1C24;
+  color: white;
+  font-weight: bold;
+  border-radius: 50%;
+  font-size: 1.9rem;
+  top: 55%;
+  left: 30%;
+  transform-origin: 0 150px;
+  animation: hideLetters 7s linear infinite;
+}
+
+/* Positionnement des lettres sur un cercle */
+.circle-letter:nth-child(1) { transform: rotate(-135deg) translateX(180px) rotate(135deg); animation-delay: 0s; }
+.circle-letter:nth-child(2) { transform: rotate(-90deg) translateX(180px) rotate(90deg); animation-delay: 0.5s; }
+.circle-letter:nth-child(3) { transform: rotate(-45deg) translateX(180px) rotate(45deg); animation-delay: 1s; }
+.circle-letter:nth-child(4) { transform: rotate(0deg) translateX(180px) rotate(0deg); animation-delay: 1.5s; }
+.circle-letter:nth-child(5) { transform: rotate(45deg) translateX(180px) rotate(-45deg); animation-delay: 2s; }
+.circle-letter:nth-child(6) { transform: rotate(90deg) translateX(180px) rotate(-90deg); animation-delay: 2.5s; }
+.circle-letter:nth-child(7) { transform: rotate(135deg) translateX(180px) rotate(-135deg); animation-delay: 3s; }
+
+/* RÉPONSIVE DESIGN */
+@media (max-width: 768px) {
+  .main-container {
+    flex-direction: column;
+    background: linear-gradient(to bottom, #d40000 50%, #ffffff 50%);
+  }
+  .animation-section {
+    width: 300px;
+    height: 300px;
+    margin: 20px auto;
+  }
+  .circle-letter {
+    width: 70px;
+    height: 70px;
+    font-size: 1.5rem;
+  }
+  .login-section {
+    margin: 20px;
+    padding: 30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .animation-section {
+    width: 250px;
+    height: 250px;
+  }
+  .circle-letter {
+    width: 60px;
+    height: 60px;
+    font-size: 1.2rem;
+  }
+}
+
+/* SPINNER DE CHARGEMENT */
+.loading-spinner {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #0077b5;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}

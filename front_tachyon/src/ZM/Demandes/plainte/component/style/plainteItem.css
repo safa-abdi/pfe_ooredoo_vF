@@ -1,0 +1,284 @@
+.plainte-item-details p,
+.plainte-item-gouvDel,
+.plainte-item-cgrps,
+.plainte-item-stt {
+  display: flex;
+  align-items: center;
+  gap: 8px; 
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+
+.icon1 {
+  color: #17a2d5;
+  font-size: 1.1em;
+}
+
+.plainte-item-cgrps span {
+  color: #0056b3;
+  text-align: right;
+  font-weight: 500;
+  font-size: 0.95em;
+  flex: 1;
+}
+
+.plainte-item-cgrps:hover {
+  cursor: pointer;
+}
+
+.plainte-item-cgrps .icon {
+  color: #0c79a0;
+}
+
+.plainte-item-gouvDel .icon {
+  color: #258ebf;
+}
+.plainte-item-stt .icon1 {
+  color: #878781;
+}
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #0056b3;
+    --background-color: #f8f9fa;
+    --text-color: #333;
+    --border-color: #e9ecef;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
+  }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--background-color);
+    margin: 0;
+    padding: 0;
+    color: var(--text-color);
+  }
+  
+  .plainte-page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--background-color);
+  }
+  
+  .container_act {
+    display: flex;
+    flex: 1;
+  }
+  
+  .main-content_act {
+    flex: 1;
+    padding: 20px;
+    margin-left: 250px;
+  }
+  
+  h1 {
+    text-align: center;
+    color: var(--text-color);
+    font-size: 2.5em;
+    margin-bottom: 30px;
+    font-weight: 600;
+  }
+  
+  
+  .plainte-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .plainte-item {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    width: 100%;
+    height: 250px;
+  }
+  
+  .plainte-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+  
+  .plainte-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    
+  }
+  
+  .plainte-item h3 {
+    margin: 0;
+    color: rgb(169, 0, 0);
+    font-size: 1em;
+    font-weight: 200;
+    font-family:  'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+
+  }
+  .plainte-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .plainte-item-msisdn {
+    color: var(--text-color);
+    font-size: 1.1em;
+    font-weight: 500;
+    font-family:  'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+  }
+  
+  .plainte-item-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid var(--border-color);
+    font-weight: bold;
+  }
+  
+  .plainte-item-details p {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: var(--text-color);
+    font-size: 0.8em;
+
+    margin-top: 10px;
+
+  }
+  
+  .buttonItem {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+  }
+  
+  .buttonItem button {
+    padding: 8px 16px;
+    background-color: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.2em;
+    transition: var(--transition);
+  }
+  
+  .buttonItem button:hover {
+    background-color: var(--secondary-color);
+  }
+  
+
+  .plainte-item-details .icon {
+    color: var(--primary-color);
+    font-size: 1.2em;
+  }
+  
+  .plainte-item-details .icon5 {
+    color: var(--primary-color);
+  }
+  .plainte-item-details p:last-child {
+    position: absolute;
+    right: 40px;
+    transform: translateY(-10%);
+    background-color: #5fa9ff6d;
+    border-radius: 30px;
+    padding: 8px;
+    font-size: 11px;
+    text-decoration: 2px;
+  }
+  
+  .plainte-item-cgrps,
+  .plainte-item-gouvDel,
+  .plainte-item-stt {
+    display: flex;
+    align-items: center;
+    width: 50%;
+    font-size: 1em;
+    font-weight: 500;
+    color: var(--text-color);
+  }
+
+  
+  .search-filter_act .search-container {
+    position: relative;
+    flex-grow: 1;
+  }
+  
+  .custom-checkbox {
+    display: inline-block;
+    position: relative;
+    padding-left: 25px;
+    margin-right: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  
+  .custom-checkbox input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+  }
+  
+  .checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 18px;
+    width: 18px;
+    background-color: #fff;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .custom-checkbox:hover input ~ .checkmark {
+    background-color: #f1f1f1;
+  }
+  
+  .custom-checkbox input:checked ~ .checkmark {
+    background-color: #2196F3;
+    border-color: #2196F3;
+  }
+  
+  .checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+  }
+  
+  .custom-checkbox input:checked ~ .checkmark:after {
+    display: block;
+  }
+  
+  .custom-checkbox .checkmark:after {
+    left: 5px;
+    top: 1px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  
+  
+  
+.plainte-details p {
+  margin: 5px 0;
+}
+  @media (max-width: 768px) {
+    .main-content_act {
+      margin-left: 0;
+    }
+  
+    .search-filter_act input {
+      width: 100%;
+    }
+  }

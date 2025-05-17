@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .header { color: #e2001a; font-size: 24px; } /* Couleur Ooredoo */
+    .content { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .footer { margin-top: 30px; font-size: 0.9em; color: #666; border-top: 1px solid #eee; padding-top: 10px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th { background-color: #f5f5f5; text-align: left; padding: 10px; }
+    td { padding: 10px; border-bottom: 1px solid #eee; }
+    .bon-number { font-weight: bold; color: #e2001a; }
+  </style>
+</head>
+<body>
+  <div class="content">
+    <h1 class="header">Confirmation de RDV</h1>
+    
+    <p>Bonjour,</p>
+    
+    <p>Un rendez-vous a été programmé pour le bon DPM <span class="bon-number">{{bonNumber}}</span> :</p>
+    
+    <p><strong>📅 Date :</strong> {{date}}</p>
+    <p><strong>🏢 Société émettrice :</strong> {{fromCompany}}</p>
+    <p><strong>🏭 Société destinataire :</strong> {{toCompany}}</p>
+    
+    <h3>📦 Détails des produits :</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Produit</th>
+          <th>Référence</th>
+          <th>Quantité</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each products}}
+        <tr>
+          <td>{{this.name}}</td>
+          <td>{{this.reference}}</td>
+          <td>{{this.quantity}}</td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    
+    {{#if attachments}}
+    <p>📎 <strong>Pièce jointe :</strong> Le bon de livraison est attaché à cet email.</p>
+    {{/if}}
+    
+    <div class="footer">
+      <p>Cordialement,</p>
+      <p><strong>Équipe Ooredoo Stock</strong></p>
+      <p>Ceci est un message automatique, merci de ne pas y répondre.</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,82 @@
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  
+    background-color: #f9f9f9;
+    color: #2c2c2c;
+  
+    padding: 12px 35px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 75px;
+    z-index: 1000;
+  
+    border-bottom: 1px solid #ddd;
+    box-shadow: 4px 4px 15px rgba(154, 153, 153, 0.4);
+    font-family: 'Tajawal', sans-serif;  
+    font-weight: 700;
+
+
+  }
+  
+  /* Logo (image) */
+  .navbar .backImg {
+    height: auto;
+    max-height: 35px;
+    width: auto;
+  }
+  
+  /* Company name */
+  .navbar-brand {
+    font-size: 1.6em;
+    font-weight: 600;
+    color: #2c2c2c;
+    text-decoration: none;
+    transition: color 0.3s ease-in-out;
+    margin-left: 15px;
+  }
+  
+  .navbar-brand:hover {
+    color: #007bff;
+  }
+  
+  /* User info (greeting) */
+  .navbar-user {
+    font-size: 1em;
+    font-weight: 400;
+    color: #555;
+    text-align: right;
+    white-space: nowrap;
+  }
+  
+  /* Optional: avatar beside name (if needed) */
+  /*
+  .navbar-user img {
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 1px solid #ccc;
+    vertical-align: middle;
+  }
+  */
+  
+  /* Responsive adaptation */
+  @media (max-width: 768px) {
+    .navbar {
+      flex-direction: column;
+      height: auto;
+      padding: 10px 20px;
+    }
+  
+    .navbar-brand,
+    .navbar-user {
+      margin: 5px 0;
+      text-align: center;
+    }
+  }
+  

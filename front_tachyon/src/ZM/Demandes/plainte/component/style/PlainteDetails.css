@@ -1,0 +1,81 @@
+.plainte-details {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-top: 20px;
+  }
+  
+  .plainte-details-empty {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+  }
+  
+  .plainte-details-empty .icon-info {
+    font-size: 24px;
+    margin-bottom: 10px;
+  }
+  
+  .details-title {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .details-title .icon-title {
+    margin-right: 10px;
+    color: #007bff;
+  }
+  
+
+  .details-section {
+    margin-bottom: 20px;
+  }
+  
+  .section-title {
+    font-size: 18px;
+    color: #555;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .section-title .icon-section {
+    margin-right: 10px;
+    color: #28a745;
+  }
+  
+  .details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+  }
+  
+  .detail-item {
+    display: flex;
+    flex-direction: column;
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #eee;
+  }
+  
+  .detail-label {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 5px;
+  }
+  
+  .detail-value {
+    font-size: 16px;
+    color: #333;
+    font-weight: 500;
+  }
+  
+  .detail-value .icon-detail {
+    margin-right: 5px;
+    color: #007bff;
+  }
