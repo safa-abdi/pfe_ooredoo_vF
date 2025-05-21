@@ -8,7 +8,7 @@ import { faCheckSquare } from '@fortawesome/free-solid-svg-icons';
 import './activationList.css'
 import { BASE_API_URL } from '../../../../config';
 
-const ActivationList = ({ activations, Gouv, isselectedGouv, createdDeleg, onActivationClick }) => {
+const ActivationList = ({ activations, Gouv, isselectedGouv, createdDeleg, onActivationClick, onExportRequest }) => {
   const [selectedActivations, setSelectedActivations] = useState([]);
   const [successMessage, setSuccessMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -16,10 +16,13 @@ const ActivationList = ({ activations, Gouv, isselectedGouv, createdDeleg, onAct
   const [isReassignment, setIsReassignment] = useState(false);
   const [isBatchClotureOpen, setIsBatchClotureOpen] = useState(false);
   const [clotureReason, setClotureReason] = useState('');
+  const [totalToExport, setTotalToExport] = useState(0);
+  const [isEnabled, setIsEnabled] = useState(false);
+
   const token = localStorage.getItem("token");
   // console.log(token)
-   const user = JSON.parse(localStorage.getItem("user"));
-   const userId = user.id;
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userId = user.id;
   // eslint-disable-next-line no-unused-vars
   const [assignMessage, setAssignMessage] = useState('');
   const [matchingSTTs, setMatchingSTTs] = useState([]);
@@ -28,27 +31,72 @@ const ActivationList = ({ activations, Gouv, isselectedGouv, createdDeleg, onAct
       prev.filter(a => a.crm_case !== activation.crm_case)
     );
   };
+  useEffect(() => {
+    const fetchExportCount = async () => {
+      try {
+        const dataToExport = await onExportRequest();
+        setTotalToExport(dataToExport.length);
+      } catch (error) {
+        console.error("Erreur lors de la récupération du nombre d'éléments à exporter :", error);
+        setTotalToExport(0);
+      }
+    };
 
-  const handleAssignmentComplete = () => {
-  // Cette fonction sera appelée après une affectation réussie
-  // Vous pouvez y ajouter une logique de rafraîchissement si nécessaire
-  // Par exemple, recharger les données ou afficher un message
-  message.success('Affectation réussie !');
-};
-    const handleBatchClotureOpen = () => {
-      console.log("on batch cloture")
-      const hasTerminated = selectedActivations.some(a => a.STATUT.toLowerCase() === 'terminé');
-  
-      if (hasTerminated) {
-        message.error({
-          content: 'Impossible de clôturer des resiliations déjà terminées.',
-          duration: 2,
-        });
+    fetchExportCount();
+  }, [activations]);
+  const handleExport = async () => {
+    try {
+      const dataToExport = await onExportRequest();
+      if (dataToExport.length === 0) {
+        message.warning('Aucune donnée à exporter');
         return;
       }
-  
-      setIsBatchClotureOpen(true);
-    };
+
+      // Mettre à jour le total à exporter
+      setTotalToExport(dataToExport.length);
+
+      const response = await fetch(`${BASE_API_URL}/export/demandes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ data: dataToExport }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de l\'exportation');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'demandes.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      console.error('Export failed:', error);
+      message.error('Échec de l\'exportation');
+    }
+  };
+  const handleAssignmentComplete = () => {
+    message.success('Affectation réussie !');
+  };
+  const handleBatchClotureOpen = () => {
+    console.log("on batch cloture")
+    const hasTerminated = selectedActivations.some(a => a.STATUT.toLowerCase() === 'terminé');
+
+    if (hasTerminated) {
+      message.error({
+        content: 'Impossible de clôturer des resiliations déjà terminées.',
+        duration: 2,
+      });
+      return;
+    }
+
+    setIsBatchClotureOpen(true);
+  };
 
   useEffect(() => {
     if (!isselectedGouv && selectedActivations.length > 0) {
@@ -141,38 +189,38 @@ const ActivationList = ({ activations, Gouv, isselectedGouv, createdDeleg, onAct
     }
   };
 
- const handleBatchAssign = async (selectedSTT) => {
-  try {
-    const activationIds = selectedActivations.map((a) => a.crm_case);
-    
-    
-    const response = await fetch(`${BASE_API_URL}/activation/batch-assign-stt/${userId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        activationIds,
-        sttName: selectedSTT.name,
-        companyId: selectedSTT.id,
-      }),
-    });
+  const handleBatchAssign = async (selectedSTT) => {
+    try {
+      const activationIds = selectedActivations.map((a) => a.crm_case);
 
-    if (!response.ok) {
-      throw new Error("Erreur lors de l'affectation du STT");
+
+      const response = await fetch(`${BASE_API_URL}/activation/batch-assign-stt/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          activationIds,
+          sttName: selectedSTT.name,
+          companyId: selectedSTT.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de l'affectation du STT");
+      }
+      const result = await response.json();
+      setTimeout(() => {
+        setIsBatchMapOpen(false);
+        setSelectedActivations([]);
+      }, 2000);
+    } catch (error) {
+      setErrorMessage(error.message || "Erreur lors de l'affectation du STT");
     }
-    const result = await response.json();
-    setTimeout(() => {
-      setIsBatchMapOpen(false);
-      setSelectedActivations([]);
-    }, 2000);
-  } catch (error) {
-    setErrorMessage(error.message || "Erreur lors de l'affectation du STT");
-  }
-};
+  };
 
- const handleBatchClotureSubmit = async () => {
+  const handleBatchClotureSubmit = async () => {
     try {
       const activationIds = selectedActivations.map(a => a.crm_case);
 
@@ -274,11 +322,21 @@ const ActivationList = ({ activations, Gouv, isselectedGouv, createdDeleg, onAct
     return <div className="no-activations">Aucune activation effectuée.</div>;
   }
   return (
+
     <div className="activation-list">
+      <div className="export-container">
+        <button className="export-button" onClick={handleExport}>
+          Exporter en Excel
+          {totalToExport > 0 && (
+            <span className="export-count">({totalToExport} éléments disponibles)</span>
+          )}
+        </button>
+
+      </div>
       <div className="batch-actions">
         <button
           onClick={toggleSelectAll}
-          className={`select-all-button ${selectedActivations.length === activations.length ? 'active' : ''
+          className={`select-allAct-button ${selectedActivations.length === activations.length ? 'active' : ''
             }`}
           title="Sélectionner/Désélectionner toutes les activations"
         >
@@ -308,6 +366,7 @@ const ActivationList = ({ activations, Gouv, isselectedGouv, createdDeleg, onAct
 
         <button
           onClick={handleBatchMapOpen}
+          className='batch-button'
           disabled={!isselectedGouv || selectedActivations.some(a =>
             a.STATUT !== "En cours" || !isNonAffecte(a.REP_TRAVAUX_STT)
           )}
@@ -316,6 +375,8 @@ const ActivationList = ({ activations, Gouv, isselectedGouv, createdDeleg, onAct
         </button>
         <button
           onClick={handleReassignBatchMapOpen}
+  className={`batch-button ${isEnabled ? 'active' : ''}`}
+
           disabled={!isselectedGouv || selectedActivations.some(a =>
             a.STATUT !== "En cours" || isNonAffecte(a.REP_TRAVAUX_STT)
           )}
@@ -323,7 +384,7 @@ const ActivationList = ({ activations, Gouv, isselectedGouv, createdDeleg, onAct
           Réaffectation ({selectedActivations.filter(a => a.STATUT === "En cours" && !isNonAffecte(a.REP_TRAVAUX_STT)).length} sélectionnées)
         </button>
       </div>
-        {isBatchClotureOpen && (
+      {isBatchClotureOpen && (
         <div className="batch-clotureAct-popup">
           <h2>Clôturer les Activations</h2>
           <textarea
@@ -356,7 +417,7 @@ const ActivationList = ({ activations, Gouv, isselectedGouv, createdDeleg, onAct
               ? () => handleReassign(activation)
               : null
           }
-            onAssignmentComplete={handleAssignmentComplete}
+          onAssignmentComplete={handleAssignmentComplete}
 
 
         />

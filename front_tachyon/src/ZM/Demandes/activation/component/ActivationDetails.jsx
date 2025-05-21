@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBroadcastTower } from "@fortawesome/free-solid-svg-icons";
+import { faBroadcastTower, faHistory } from "@fortawesome/free-solid-svg-icons";
 import {
   faUser,
   faPhoneAlt,
@@ -10,8 +10,39 @@ import {
 import './ActivationDetails.css';
 import { faCalendar } from "@fortawesome/free-solid-svg-icons";
 import { faUserCog } from "@fortawesome/free-solid-svg-icons";
+import HistoryModal from './HistoryModal'; // Vous devrez créer ce composant
 
 const ActivationDetails = ({ activation }) => {
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyData, setHistoryData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchHistory = async () => {
+    if (!activation) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(
+        `http://localhost:3000/history/msisdn-history?crm_case=${activation.crm_case}&msisdn=${activation.MSISDN}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération de l\'historique');
+      }
+      
+      const data = await response.json();
+      setHistoryData(data);
+      setShowHistory(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!activation) {
     return (
       <div className="activation-details-empty">
@@ -23,11 +54,25 @@ const ActivationDetails = ({ activation }) => {
 
   return (
     <div className="activation-details">
-      <h2 className="details-title">
-        <FontAwesomeIcon icon={faInfoCircle} className="icon-title" />
-        Détails de l'Activation
-      </h2>
-      <div className="details-section">
+      <div className="details-header">
+        <h2 className="details-title">
+          <FontAwesomeIcon icon={faInfoCircle} className="icon-title" />
+          Détails de l'Activation
+        </h2>
+        <button 
+          onClick={fetchHistory}
+          className="history-button"
+          disabled={loading}
+        >
+          <FontAwesomeIcon icon={faHistory} /> Historique
+          {loading && <span className="loading-spinner"></span>}
+        </button>
+      </div>
+
+      {error && <div className="error-message">{error}</div>}
+
+      {/* Le reste de votre code existant... */}
+       <div className="details-section">
         <h3 className="section-title">
         <FontAwesomeIcon icon={faCalendar} className="icon-section" />
         Dates 
@@ -154,7 +199,12 @@ const ActivationDetails = ({ activation }) => {
           </div>
         </div>
       </div>
-
+      {showHistory && (
+        <HistoryModal 
+          historyData={historyData} 
+          onClose={() => setShowHistory(false)} 
+        />
+      )}
     </div>
   );
 };

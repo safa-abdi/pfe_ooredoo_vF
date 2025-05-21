@@ -165,7 +165,8 @@
   }
 
   .search-buttonAct{
-    background-color: #333 !important;
+    background-color: #9cbccd !important;
+    height: 45px;
   }
   
   .search-filter_act .search-containerAct {

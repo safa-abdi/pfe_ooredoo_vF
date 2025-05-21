@@ -3,9 +3,81 @@ import openpyxl
 import re
 from datetime import datetime, timedelta
 import calendar
+from collections import defaultdict
+import mysql.connector
+from mysql.connector import Error
 
-# Charger le fichier Excel existant
-file_path = './exple.xlsx'
+def connect_to_db():
+    try:
+        connection = mysql.connector.connect(
+           host='localhost',       
+            database='ooredoo',  
+            user='root',            
+            password='#Safa@123_#'
+        )
+        return connection
+    except Error as e:
+        print(f"Erreur de connexion à la base de données : {e}")
+        return None
+    
+def check_existing_crms(connection, crm_cases):
+    cursor = connection.cursor()
+    placeholders = ', '.join(['%s'] * len(crm_cases))
+    query = f"SELECT CRM_CASE FROM activation WHERE CRM_CASE IN ({placeholders})"
+    cursor.execute(query, crm_cases)
+    results = cursor.fetchall()
+    return set(row[0] for row in results)
+def insert_new_data(connection, data_to_insert):
+    cursor = connection.cursor()
+
+    insert_query = """
+    INSERT INTO activation (
+        CRM_CASE, DATE_CREATION_CRM, LATITUDE_SITE, LONGITUDE_SITE, MSISDN, CONTACT_CLIENT, CLIENT,
+        REP_TRAVAUX_STT, NAME_STT, Delegation, Gouvernorat, DATE_AFFECTATION_STT, DES_PACK, offre,
+        OPENING_DATE_SUR_TIMOS, STATUT, REP_RDV, DATE_PRISE_RDV, CMT_RDV, METRAGE_CABLE, DATE_FIN_TRV
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+
+    existing_crms = set()
+    if data_to_insert:
+        crm_cases = [entry['CRM_CASE'] for entry in data_to_insert if entry['CRM_CASE']]
+        existing_crms = check_existing_crms(connection, crm_cases)
+
+    new_records = []
+    for entry in data_to_insert:
+        crm_case = entry['CRM_CASE']
+        if crm_case and crm_case not in existing_crms:
+            new_records.append((
+                crm_case,
+                entry['DATE_CREATION_CRM'],
+                entry['LATITUDE_SITE'],
+                entry['LONGITUDE_SITE'],
+                entry['MSISDN'],
+                entry['CONTACT_CLIENT'],
+                entry['CLIENT'],
+                entry['REP_TRAVAUX_STT'],
+                entry['NAME_STT'],
+                entry['Delegation'],
+                entry['Gouvernorat'],
+                entry['DATE_AFFECTATION_STT'],
+                entry['DES_PACK'],
+                entry['offre'],
+                entry['OPENING_DATE_SUR_TIMOS'],
+                entry['STATUT'],
+                entry['REP_RDV'],
+                entry['DATE_PRISE_RDV'],
+                entry['CMT_RDV'],
+                entry['METRAGE_CABLE'],
+                entry['DATE_FIN_TRV']
+            ))
+
+    if new_records:
+        cursor.executemany(insert_query, new_records)
+        connection.commit()
+        print(f"{len(new_records)} nouveaux enregistrements insérés.")
+    else:
+        print("Aucun nouvel enregistrement à insérer.")
+file_path = './data to clean/Activation_janvFevMars.xlsx'
 workbook = openpyxl.load_workbook(file_path)
 sheet = workbook.active
 
@@ -23,7 +95,7 @@ def verif_rep_STT(rep):
 def verif_affectation(nomSTT, dateAff, REP_TRAVAUX_STT):
     #print("stt",nomSTT)
     if not nomSTT and not dateAff and not REP_TRAVAUX_STT:
-        return "non_affecté", "NULL", "non_affecté_stt"
+        return "non_affecté", None, "non_affecté_stt"
     return nomSTT, dateAff, REP_TRAVAUX_STT
     
 
@@ -40,7 +112,7 @@ def verifierGouv(gouv):
 def verif_date(dateRDV):
     # Handle None or empty values
     if not dateRDV or dateRDV in ["NULL", "None", ""]:
-        return "NULL"
+        return None
     
     # If input is already a datetime object
     if isinstance(dateRDV, datetime):
@@ -60,7 +132,7 @@ def verif_date(dateRDV):
 
         if not parsed_date:
             print(f"⚠️ Format de date invalide : {dateRDV}")
-            return "NULL"
+            return None
 
     # Si l'heure est 00:00:00, on la remplace par 23:59:00
     if parsed_date.hour == 0 and parsed_date.minute == 0 and parsed_date.second == 0:
@@ -69,9 +141,9 @@ def verif_date(dateRDV):
     return parsed_date.strftime("%Y-%m-%d %H:%M:%S")
 def verif_cable(cable):
     if not cable: 
-        return "NULL"
+        return None
     match = re.search(r'(\d+)', str(cable)) 
-    return int(match.group(1)) if match else "NULL" 
+    return int(match.group(1)) if match else None 
 
 def separate_numbers(input_str):
     match = re.match(r"(\d+\.\d+)\.(\d+\.\d+)", input_str)
@@ -807,7 +879,7 @@ for row in sheet.iter_rows(min_row=2):
     LONGITUDE_SITE_init = row[9].value
     client_nettoyé = nettoyer_NomClient(client)
     #REP_TRAVAUX_STT = row[17].value
-    REP_TRAVAUX_STT = row[23].value if len(row) > 23 else None  # or a default value like "NULL"
+    REP_TRAVAUX_STT = row[23].value if len(row) > 23 else None
     DATE_FIN_TRV = row[24].value if len(row) > 24 else None 
     DATE_FIN_TRV = verif_date(DATE_FIN_TRV)
     STT = row[15].value if len(row) > 15 else None 
@@ -891,7 +963,7 @@ for row in sheet.iter_rows(min_row=2):
                   'CONTACT_CLIENT': CONTACT_CLIENT,
                   'CLIENT': client_nettoyé,
                   'REP_TRAVAUX_STT': REP_TRAVAUX_STT,
-                  'STT': STT,
+                  'NAME_STT': STT,
                   'Delegation': delegation,
                   'Gouvernorat': gouvernorat,
                   'DATE_AFFECTATION_STT': dateAff_STT,
@@ -917,7 +989,7 @@ for row in sheet.iter_rows(min_row=2):
                   'CONTACT_CLIENT': CONTACT_CLIENT,
                   'CLIENT': client_nettoyé,
                   'REP_TRAVAUX_STT': REP_TRAVAUX_STT,
-                  'STT': STT,
+                  'NAME_STT': STT,
                   'Delegation': delegation,
                   'Gouvernorat': gouvernorat,
                   'DATE_AFFECTATION_STT': dateAff_STT,
@@ -944,7 +1016,7 @@ new_sheetError = new_workbookError.active
 new_sheetError.title = "Erroned Data"
 
 # Ajout des en-têtes
-headers = ['CRM_CASE', 'DATE_CREATION_CRM', 'LATITUDE_SITE', 'LONGITUDE_SITE', 'MSISDN', 'CONTACT_CLIENT', 'CLIENT','REP_TRAVAUX_STT','STT', 'Delegation', ' Gouvernorat' , 'DATE_AFFECTATION_STT ','DES_PACK','offre',
+headers = ['CRM_CASE', 'DATE_CREATION_CRM', 'LATITUDE_SITE', 'LONGITUDE_SITE', 'MSISDN', 'CONTACT_CLIENT', 'CLIENT','REP_TRAVAUX_STT','NAME_STT', 'Delegation', ' Gouvernorat' , 'DATE_AFFECTATION_STT ','DES_PACK','offre',
            'OPENING_DATE_SUR_TIMOS','REP_RDV','DATE_PRISE_RDV','CMT_RDV','METRAGE_CABLE','STATUT','DATE_FIN_TRV']
 new_sheet.append(headers)
 new_sheetError.append(headers)
@@ -952,13 +1024,13 @@ new_sheetError.append(headers)
 # Remplissage des fichiers avec les données
 for data in Erroned_data:
     new_sheetError.append([data['CRM_CASE'], data['DATE_CREATION_CRM'], data['LATITUDE_SITE'], 
-                           data['LONGITUDE_SITE'], data['MSISDN'], data['CONTACT_CLIENT'], data['CLIENT'],data['REP_TRAVAUX_STT'], data['STT'] , data['Delegation']
+                           data['LONGITUDE_SITE'], data['MSISDN'], data['CONTACT_CLIENT'], data['CLIENT'],data['REP_TRAVAUX_STT'], data['NAME_STT'] , data['Delegation']
                            ,data['Gouvernorat'],data['DATE_AFFECTATION_STT'],data['DES_PACK'],data['offre'],data['OPENING_DATE_SUR_TIMOS'],data['REP_RDV'],data['DATE_PRISE_RDV'],data['CMT_RDV']
                            ,data['METRAGE_CABLE'],data['STATUT'],data['DATE_FIN_TRV']])
 
 for data in cleaned_data:
     new_sheet.append([data['CRM_CASE'], data['DATE_CREATION_CRM'], data['LATITUDE_SITE'], 
-                      data['LONGITUDE_SITE'], data['MSISDN'], data['CONTACT_CLIENT'], data['CLIENT'], data['REP_TRAVAUX_STT'],data['STT'], data['Delegation']
+                      data['LONGITUDE_SITE'], data['MSISDN'], data['CONTACT_CLIENT'], data['CLIENT'], data['REP_TRAVAUX_STT'],data['NAME_STT'], data['Delegation']
                            ,data['Gouvernorat'],data['DATE_AFFECTATION_STT'],data['DES_PACK'],data['offre'],data['OPENING_DATE_SUR_TIMOS'],data['REP_RDV'],data['DATE_PRISE_RDV']
                            ,data['CMT_RDV'],data['METRAGE_CABLE'],data['STATUT'],data['DATE_FIN_TRV']])
 
@@ -975,3 +1047,27 @@ try:
     print(f"Les données nettoyées ont été enregistrées dans : {new_file_path}")
 except Exception as e:
     print(f"Erreur lors de l'enregistrement des données nettoyées : {e}")
+grouped_data = defaultdict(list)
+
+for entry in cleaned_data:
+    crm_case = entry['CRM_CASE']
+    if crm_case:
+        grouped_data[crm_case].append(entry)
+
+# Garder que l'entrée la plus récente par CRM_CASE
+filtered_cleaned_data = []
+
+for crm_case, entries in grouped_data.items():
+    sorted_entries = sorted(
+        entries,
+        key=lambda x: x['DATE_CREATION_CRM'] if isinstance(x['DATE_CREATION_CRM'], datetime) else datetime.min,
+        reverse=True
+    )
+    filtered_cleaned_data.append(sorted_entries[0])
+# Connexion à la base
+connection = connect_to_db()
+if connection and filtered_cleaned_data:
+    insert_new_data(connection, filtered_cleaned_data)
+    connection.close()
+elif not filtered_cleaned_data:
+    print("Aucune donnée valide à insérer.")

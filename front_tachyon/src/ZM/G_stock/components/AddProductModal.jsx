@@ -25,7 +25,7 @@ const AddProductModal = ({
           <div className="form-group">
             <label htmlFor="productRef">Référence</label>
             <input
-              type="number"
+              type="string"
               id="productRef"
               value={newProduct.reference}
               onChange={(e) => setNewProduct({ ...newProduct, reference: e.target.value })}
@@ -43,7 +43,7 @@ const AddProductModal = ({
             />
           </div>
 
-          <button type="submit">Ajouter</button>
+          <button className='btnAdd_Stock' type="submit">Ajouter</button>
           <button
             type="button"
             className="cancel-btn"

@@ -1,3 +1,7 @@
+body{
+    font-family: 'Tajawal', sans-serif;  
+  font-weight: 700;
+}
 .custom-checkbox {
   display: inline-block;
   position: relative;
@@ -6,13 +10,7 @@
   cursor: pointer;
   user-select: none;
 }
-.batch-button {
-  padding: 8px 12px;
-  margin: 5px;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-}
+
 
 .batch-clotureAct-popup {
   position: fixed;
@@ -75,6 +73,11 @@
   background-color: #ccc;
   cursor: not-allowed;
 }
+.batch-button:hover{
+  background-color: #e6e7e8 !important;
+  color: black;
+
+}
 
 .custom-checkbox input {
   position: absolute;
@@ -135,7 +138,19 @@
   max-height: 300px;
   overflow-y: auto;
 }
+/* Dans votre fichier activationList.css */
+.export-container {
+  display: flex;
+  align-items: center;
+  gap: 100px;
+  margin-bottom: 15px;
+  width: 100%;
+}
 
+.export-count {
+  font-size: 14px;
+  color: #ffffff;
+}
 .stt-option {
   padding: 10px;
   border-bottom: 1px solid #eee;
@@ -187,26 +202,25 @@
 }
 .batch-actions {
   display: flex;
-  justify-content: flex-end; /* Aligne le contenu à droite */
+  justify-content: flex-end; 
   align-items: center;
   gap: 8px;
   width: 100%; /* Assure que la div prend toute la largeur */
 }
 
-.batch-button {
-  color: #ffffff;
-  background-color: #044664;
+.batch-button{
+    color: rgb(255, 255, 255);
+    background-color: #3d5567 !important;
   padding: 10px 16px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   text-align: center;
+  height: 50px;
   transition: background-color 0.3s ease;
 }
-
-.batch-button:disabled {
-  background-color: #07518952;
-  cursor: not-allowed;
+.batch-button.active{
+  background-color: #1890ff;
 }
 
 .batch-button:hover:not(:disabled) {
@@ -228,13 +242,24 @@
   animation: fadeOut 2s forwards;
   animation-delay: 2s; /* Le message disparaît après 2 secondes */
 }
-.select-all-button.active {
-  background-color:#044664 ;
+.select-allAct-button.active {
+  background-color:#3d5567 ;
   border-color: #bbdefb;
 }
-.select-all-button{
-  background-color: #07518952;
+.select-allAct-button{
   color: white;
+    background-color: #3d5567;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: center;
+  height: 50px;
+  transition: background-color 0.3s ease;
+}
+.select-allAct-button:hover{
+  background-color: #e6e7e8;
+  color: black;
 }
 .icon-active {
   color: #2196f3;

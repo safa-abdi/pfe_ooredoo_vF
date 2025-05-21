@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -22,6 +23,16 @@ import { UpdatePlainteDto } from './dto/update-plainte.dto';
 import { CacheService } from 'src/cache/cache.service';
 import { PlainteFrozenDto } from './dto/plaintefrozen.dto';
 import { PaginationDto } from '../activation/dto/pagination.dto';
+export type PlainteWithoutPdf = Omit<
+  Plainte,
+  | 'pdfFile'
+  | 'pdfMimeType'
+  | 'calculateSLAs'
+  | 'normalizeDates'
+  | 'parseDate'
+  | 'calcHoursDiff'
+>;
+
 @Injectable()
 export class PlainteService {
   private readonly logger = new Logger(PlainteService.name);
@@ -38,6 +49,232 @@ export class PlainteService {
     private cacheService: CacheService,
   ) {}
 
+  async getPaginatedStats(page: number = 1, limit: number = 50) {
+    const queryBuilder = this.PlainteRepository.createQueryBuilder('p')
+      .select([
+        'p.NAME_STT as "stt"',
+        'COUNT(p.crm_case) as "total"',
+        `SUM(CASE WHEN p.STATUT = 'Terminé' THEN 1 ELSE 0 END) as "termine"`,
+        `SUM(CASE WHEN p.STATUT = 'En cours' THEN 1 ELSE 0 END) as "enCours"`,
+        `SUM(CASE WHEN p.STATUT = 'Abandonné' THEN 1 ELSE 0 END) as "abandonne"`,
+      ])
+      .where('p.NAME_STT IS NOT NULL AND p.NAME_STT != :empty', { empty: '' })
+      .groupBy('p.NAME_STT')
+      .orderBy('"total"', 'DESC');
+
+    if (limit > 0) {
+      queryBuilder.offset((page - 1) * limit).limit(limit);
+    }
+
+    const [items, total] = await Promise.all([
+      queryBuilder.getRawMany(),
+      queryBuilder.getCount(),
+    ]);
+
+    return {
+      data: items.map((item) => ({
+        stt: item.stt,
+        total: parseInt(item.total),
+        terminated: parseInt(item.termine), // Notez le mapping ici
+        inProgress: parseInt(item.enCours),
+        abandoned: parseInt(item.abandonne),
+      })),
+      meta: {
+        total,
+        page,
+        last_page: limit > 0 ? Math.ceil(total / limit) : 1,
+      },
+    };
+  }
+  async findPlaintesByCompany(
+    companyId: number,
+    searchTerm?: string,
+    page: number = 1,
+    limit: number = 50,
+    REP_TRAVAUX_STT?: string,
+    gouvernorat?: string,
+    delegation?: string,
+    DATE_AFFECTATION_STT?: string,
+    DES_PACK?: string,
+    offre?: string,
+    REP_RDV?: string,
+    DATE_PRISE_RDV?: string,
+    CMT_RDV?: string,
+    Description?: number,
+    STATUT?: string,
+  ): Promise<{ data: PlainteWithoutPdf[]; total: number }> {
+    const queryBuilder = this.PlainteRepository.createQueryBuilder('p').where(
+      'p.company_id = :companyId',
+      { companyId },
+    );
+
+    const validatedPage = Math.max(page, 1);
+    const validatedLimit = Math.min(limit, 100);
+
+    queryBuilder
+      .orderBy('p.crm_case', 'ASC')
+      .skip((validatedPage - 1) * validatedLimit)
+      .take(validatedLimit);
+
+    if (searchTerm) {
+      const likeCondition = (field: string) =>
+        new Brackets((qb) => {
+          qb.where(`p.${field} LIKE :searchTerm`, {
+            searchTerm: `%${searchTerm}%`,
+          });
+        });
+
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.orWhere(likeCondition('CLIENT'))
+            .orWhere(likeCondition('MSISDN'))
+            .orWhere(likeCondition('CONTACT_CLIENT'))
+            .orWhere(likeCondition('Gouvernorat'))
+            .orWhere(likeCondition('Delegation'))
+            .orWhere(likeCondition('crm_case'))
+            .orWhere(likeCondition('NAME_STT'))
+            .orWhere(likeCondition('offre'));
+        }),
+      );
+    }
+
+    // Filtres dynamiques
+    const filters = {
+      REP_TRAVAUX_STT,
+      Gouvernorat: gouvernorat,
+      Delegation: delegation,
+      DATE_AFFECTATION_STT,
+      DES_PACK,
+      offre,
+      REP_RDV,
+      DATE_PRISE_RDV,
+      CMT_RDV,
+      Description,
+      STATUT,
+    };
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (typeof value === 'string') {
+          queryBuilder.andWhere(`p.${key} LIKE :${key}`, {
+            [key]: `%${value}%`,
+          });
+        } else {
+          queryBuilder.andWhere(`p.${key} = :${key}`, { [key]: value });
+        }
+      }
+    });
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data: data.map(({ pdfFile, ...rest }) => rest),
+      total,
+    };
+  }
+  async findRecurringComplaintsSingleQuery(): Promise<Plainte[]> {
+    const fiveMonthsAgo = new Date();
+    fiveMonthsAgo.setMonth(fiveMonthsAgo.getMonth() - 5);
+
+    const subQuery = this.PlainteRepository.createQueryBuilder('p')
+      .select('p.MSISDN')
+      .where('p.DATE_CREATION_CRM >= :fiveMonthsAgo', { fiveMonthsAgo })
+      .groupBy('p.MSISDN')
+      .having('COUNT(p.crm_case) > 3');
+
+    return this.PlainteRepository.createQueryBuilder('plainte')
+      .where(`plainte.MSISDN IN (${subQuery.getQuery()})`)
+      .setParameters(subQuery.getParameters())
+      .andWhere('plainte.DATE_CREATION_CRM >= :fiveMonthsAgo', {
+        fiveMonthsAgo,
+      })
+      .orderBy('plainte.MSISDN', 'ASC')
+      .addOrderBy('plainte.DATE_CREATION_CRM', 'DESC')
+      .getMany();
+  }
+
+  private async getAverageSLA(groupBy: string, period: string) {
+    let dateCondition = '';
+    if (period === 'week') {
+      dateCondition = `DATE_PART('week', a.last_sync) = DATE_PART('week', NOW())`;
+    } else if (period === 'month') {
+      dateCondition = `DATE_PART('month', a.last_sync) = DATE_PART('month', NOW())`;
+    } else if (period === 'year') {
+      dateCondition = `DATE_PART('year', a.last_sync) = DATE_PART('year', NOW())`;
+    }
+
+    const whereConditions = [
+      dateCondition,
+      groupBy === 'NAME_STT'
+        ? "a.NAME_STT IS NOT NULL AND a.NAME_STT != ''"
+        : '1=1',
+    ]
+      .filter(Boolean)
+      .join(' AND ');
+
+    const groupedResults = await this.PlainteRepository.createQueryBuilder('a')
+      .select([
+        `${groupBy} AS group_by`,
+        `AVG(a.SLA_STT) AS avg_sla_stt`,
+        `AVG(a.TEMPS_MOYEN_PRISE_RDV) AS avg_temps_rdv`,
+      ])
+      .where(whereConditions)
+      .groupBy(groupBy)
+      .getRawMany();
+
+    const globalResults = await this.PlainteRepository.createQueryBuilder('a')
+      .select([
+        `AVG(a.SLA_EQUIPE_FIXE) AS avg_sla_equipe`,
+        `AVG(a.TEMPS_MOYEN_AFFECTATION_STT) AS avg_temps_affectation`,
+      ])
+      .where(dateCondition)
+      .getRawOne();
+
+    return {
+      avg_sla_equipe: globalResults.avg_sla_equipe || 0,
+      avg_temps_affectation: globalResults.avg_temps_affectation || 0,
+      details: groupedResults.filter((item) => item.group_by),
+    };
+  }
+
+  async getCountOfPlaintesBySttId_technicien(
+    sttId: number,
+    technicianId: number,
+    Gouv: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<{ status: string; count: number }[]> {
+    const query = this.PlainteRepository.createQueryBuilder('plainte')
+      .select('plainte.STATUT', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .leftJoin('plainte.companyDelegation', 'companyDelegation')
+      .leftJoin('companyDelegation.technicien', 'technicien')
+      .where('plainte.company_id = :sttId', { sttId })
+      .andWhere('technicien.id = :technicianId', { technicianId });
+
+    if (Gouv) {
+      query.andWhere('LOWER(plainte.Gouvernorat) LIKE :gouv', {
+        gouv: `%${Gouv.toLowerCase()}%`,
+      });
+    }
+
+    if (startDate) {
+      query.andWhere('plainte.DATE_AFFECTATION_STT >= :startDate', {
+        startDate,
+      });
+    }
+
+    query.andWhere('plainte.DATE_AFFECTATION_STT <= :endDate', {
+      endDate: endDate ?? new Date(),
+    });
+
+    query.groupBy('plainte.STATUT');
+
+    return query.getRawMany();
+  }
+  async getAverageSLABySTT(period: string) {
+    return this.getAverageSLA('NAME_STT', period);
+  }
   async findAllInProgressCursorPaginated(
     lastId: string | null = null,
     limit: number = 100,

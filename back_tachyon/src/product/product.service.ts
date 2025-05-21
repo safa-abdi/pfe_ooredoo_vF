@@ -11,7 +11,11 @@ export class ProductsService {
   ) {}
 
   async findAll(): Promise<Products[]> {
-    return this.productsRepository.find();
+    return this.productsRepository.find({
+      where: {
+        archived: false,
+      },
+    });
   }
 
   async findOne(id: number): Promise<Products> {
@@ -37,5 +41,10 @@ export class ProductsService {
     if (result.affected === 0) {
       throw new NotFoundException(`Produit avec l'ID ${id} introuvable.`);
     }
+  }
+  async archive(id: number): Promise<Products> {
+    const product = await this.findOne(id);
+    product.archived = true;
+    return this.productsRepository.save(product);
   }
 }

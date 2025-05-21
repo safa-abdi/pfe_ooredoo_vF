@@ -226,10 +226,19 @@ export class StockMovementsService {
     pdfPath?: string,
   ): Promise<void> {
     try {
-      const companyWithUsers = await this.companyRepository.findOne({
-        where: { id: movement.toCompany.id },
-        relations: ['users'],
-      });
+      const companyWithUsers = await this.companyRepository
+        .createQueryBuilder('company')
+        .leftJoinAndSelect(
+          'company.users',
+          'user',
+          'user.role_id IN (:...roleIds)',
+          {
+            roleIds: [2, 4],
+          },
+        )
+
+        .where('company.id = :companyId', { companyId: movement.toCompany.id })
+        .getOne();
 
       if (!companyWithUsers?.users?.length) {
         this.logger.warn(

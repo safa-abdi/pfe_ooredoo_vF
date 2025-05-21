@@ -69,7 +69,8 @@ clickedPosition,
   filteredPlaintes = [],
   filteredResiliations = [],
   highlightMarkers = false,
-  centerOn = null
+  centerOn = null,
+  onMarkerClick 
 }) => {
   const mapRef = useRef(null);
   const [gouvernorat, setLocalGouvernorat] = useState(null);
@@ -79,10 +80,8 @@ clickedPosition,
   console.log('Plaintes:', filteredPlaintes);
   console.log('Resiliations:', filteredResiliations);
 
-  // Memoization for points - version plus robuste
   const points = useMemo(() => {
     const formatPoint = (item, type) => {
-      // Essayez différents noms de propriétés pour les coordonnées
       const lat = parseFloat(
         item.LATITUDE_SITE || 
         item.latitude || 
@@ -181,8 +180,21 @@ useEffect(() => {
           iconSize: point.highlighted ? [12, 12] : [8, 8],
           className: `custom-icon ${point.highlighted ? 'highlighted-marker' : ''}`,
         })}
+         eventHandlers={{
+              click: () => {
+                if (onMarkerClick) {
+                  onMarkerClick(point);
+                }
+              },
+            }}
       >
-        {/* Popup existant */}
+       <Popup>
+              <div>
+                <strong>Client:</strong> {point.CLIENT || 'N/A'}<br />
+                <strong>MSISDN:</strong> {point.MSISDN || 'N/A'}<br />
+                <strong>Type:</strong> {point.dataType}
+              </div>
+            </Popup>
       </Marker>
     ))}
   </MarkerClusterGroup>

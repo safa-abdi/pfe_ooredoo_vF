@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { ResiliationService } from './resiliation.service';
 import { Resiliation } from './entities/resiliation.entity';
 
@@ -25,6 +25,74 @@ export class ResiliationController {
       search,
     );
   }
+  @Get('sla/stt')
+  async getAverageSLABySTT(@Query('period') period: string) {
+    return this.resiliationService.getAverageSLABySTT(period);
+  }
+
+  @Get('company/:companyId')
+  async getByCompany(
+    @Param('companyId', ParseIntPipe) companyId: number,
+    @Query()
+    query: {
+      searchTerm?: string;
+      page?: number;
+      limit?: number;
+      REP_TRAVAUX_STT?: string;
+      gouvernorat?: string;
+      delegation?: string;
+      DATE_AFFECTATION_STT?: string;
+      DES_PACK?: string;
+      Detail?: string;
+      REP_RDV?: string;
+      DATE_PRISE_RDV?: string;
+      CMT_RDV?: string;
+      Description?: number;
+      STATUT?: string;
+    },
+  ) {
+    const {
+      searchTerm,
+      page = 1,
+      limit = 50,
+      REP_TRAVAUX_STT,
+      gouvernorat,
+      delegation,
+      DATE_AFFECTATION_STT,
+      DES_PACK,
+      Detail,
+      REP_RDV,
+      DATE_PRISE_RDV,
+      CMT_RDV,
+      Description,
+      STATUT,
+    } = query;
+
+    return this.resiliationService.findResiliaByCompany(
+      companyId,
+      searchTerm,
+      page,
+      limit,
+      REP_TRAVAUX_STT,
+      gouvernorat,
+      delegation,
+      DATE_AFFECTATION_STT,
+      DES_PACK,
+      Detail,
+      REP_RDV,
+      DATE_PRISE_RDV,
+      CMT_RDV,
+      Description,
+      STATUT,
+    );
+  }
+  @Get('paginated')
+  async getPaginatedStats(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 50,
+  ) {
+    return this.resiliationService.getPaginatedStats(page, limit);
+  }
   @Get('valid')
   async findAllWithCursorPagination(
     @Query()
@@ -37,7 +105,7 @@ export class ResiliationController {
       delegation?: string;
       DATE_AFFECTATION_STT?: string;
       DES_PACK?: string;
-      offre?: string;
+      Detail?: string;
       REP_RDV?: string;
       DATE_PRISE_RDV?: string;
       CMT_RDV?: string;
@@ -54,7 +122,7 @@ export class ResiliationController {
       delegation,
       DATE_AFFECTATION_STT,
       DES_PACK,
-      offre,
+      Detail,
       REP_RDV,
       DATE_PRISE_RDV,
       CMT_RDV,
@@ -72,7 +140,7 @@ export class ResiliationController {
       delegation,
       DATE_AFFECTATION_STT,
       DES_PACK,
-      offre,
+      Detail,
       REP_RDV,
       DATE_PRISE_RDV,
       CMT_RDV,

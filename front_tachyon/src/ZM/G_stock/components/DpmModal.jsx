@@ -119,19 +119,16 @@ const DpmModal = ({
     try {
       setIsLoading(true);
 
-      // Mise à jour des quantités disponibles à partir des produits Ooredoo
       const newQuantities = {};
       ooredooProducts.forEach(item => {
         newQuantities[item.product.id] = item.quantity;
       });
       setAvailableQuantities(newQuantities);
 
-      // Recharger les packs
       const packsResponse = await fetch('http://localhost:3000/packs');
       const packsData = await packsResponse.json();
       setPacks(packsData);
 
-      // Recharger les produits via la fonction fetchPacks
       if (fetchPacks) {
         await fetchPacks();
       }
@@ -181,7 +178,6 @@ const DpmModal = ({
         });
     });
 
-      // Vérification des stocks pour les produits individuels
       const productStockErrors = selectedProducts
         .filter(product => (availableQuantities[product.id] || 0) < product.quantity)
         .map(product => `${product.name} (${availableQuantities[product.id] || 0} disponible, ${product.quantity} demandé)`);
@@ -191,7 +187,6 @@ const DpmModal = ({
         throw new Error(`Stocks insuffisants:\n${allStockErrors.join('\n')}`);
       }
 
-      // Envoi des données pour les packs
       const packPromises = selectedPacks.map(packId =>
         fetch('http://localhost:3000/stock-movements/create', {
           method: 'POST',
@@ -208,7 +203,6 @@ const DpmModal = ({
         })
       );
 
-      // Envoi des données pour les produits individuels
       const productPromises = selectedProducts.map(product =>
         fetch('http://localhost:3000/stock-movements', {
           method: 'POST',
@@ -230,7 +224,6 @@ const DpmModal = ({
         throw new Error("Certains mouvements n'ont pas pu être créés");
       }
 
-      // Réinitialisation et fermeture
       await refreshData();
       setSelectedPacks([]);
       setSelectedProducts([]);
@@ -254,7 +247,6 @@ const DpmModal = ({
       <div className="transfer-content">
         <h2>Créer DPM</h2>
 
-        {/* Sélection de la STT */}
         <div className="form-group">
           <label>Sélectionnez la STT destinataire:</label>
           <select
@@ -279,7 +271,6 @@ const DpmModal = ({
 
         {selectedCompanyId && (
           <>
-            {/* Onglets */}
             <div className="tabs">
               <button
                 className={`action-btn tab-button ${activeTab === 'packs' ? 'active' : ''}`}
@@ -296,7 +287,6 @@ const DpmModal = ({
               </button>
             </div>
 
-            {/* Contenu des onglets */}
             <div className="tab-content">
               {activeTab === 'packs' && (
                 <div className="pack-selection">

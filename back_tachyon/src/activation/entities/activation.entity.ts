@@ -128,6 +128,9 @@ export class Activation {
   @Column({ nullable: true })
   pdfMimeType: string;
 
+  @Column({ type: 'double', default: 0 })
+  SLARDV_Critique: number;
+
   @BeforeInsert()
   @BeforeUpdate()
   calculateSLAs() {
@@ -153,6 +156,7 @@ export class Activation {
       this.DATE_PRISE_RDV,
     );
   }
+
   private normalizeDates() {
     const dateFields = [
       'DATE_CREATION_CRM',

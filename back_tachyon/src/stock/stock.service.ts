@@ -13,6 +13,7 @@ import { UpdateStockDto } from './dto/update-stock.dto';
 import { Products } from './entities/products.entity';
 import { Pack } from 'src/product/pack/entities/pack.entity';
 import { Company } from 'src/companies/entities/company.entity';
+import { StockItem } from './entities/stock-item.entity';
 
 @Injectable()
 export class StockService {
@@ -27,12 +28,14 @@ export class StockService {
 
     @InjectRepository(Pack)
     private readonly packRepository: Repository<Pack>,
+
+    @InjectRepository(StockItem)
+    private readonly stockItemRepository: Repository<StockItem>,
   ) {}
 
   async create(createStockDto: CreateStockDto): Promise<Stock> {
     const { product_id, company_id } = createStockDto;
 
-    // Vérifie si le produit existe
     const product = await this.productRepository.findOne({
       where: { id: product_id },
     });
@@ -159,7 +162,6 @@ export class StockService {
     const stock = await this.findOne(id);
     await this.stockRepository.remove(stock);
   }
-  // Ajoutez cette nouvelle méthode
   async updateThresholds(
     id: number,
     low: number,
@@ -201,5 +203,91 @@ export class StockService {
     if (quantity <= lowThreshold) return 'Low';
     if (quantity <= mediumThreshold) return 'Medium';
     return 'High';
+  }
+  async alimenterStock(
+    productId: number,
+    companyId: number,
+    quantity: number,
+  ): Promise<Stock> {
+    const product = await this.productRepository.findOneBy({ id: productId });
+    if (!product) {
+      throw new Error(`Produit avec ID ${productId} non trouvé`);
+    }
+
+    const existingStock = await this.stockRepository.findOne({
+      where: {
+        product: { id: productId },
+        company: { id: companyId },
+      },
+      relations: ['product', 'company'],
+    });
+
+    let stock: Stock;
+
+    if (existingStock) {
+      // Mise à jour du stock existant
+      existingStock.quantity += quantity;
+      existingStock.DPM_quantity += quantity;
+      existingStock.updated_at = new Date();
+      stock = existingStock;
+    } else {
+      // Création d'un nouveau stock avec une syntaxe plus explicite
+      stock = new Stock();
+      stock.product = product;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      stock.company = { id: companyId } as any; // Solution temporaire pour la relation
+      stock.quantity = quantity;
+      stock.DPM_quantity = quantity;
+      stock.global = true;
+      stock.date_prel = new Date();
+      stock.updated_at = new Date();
+    }
+
+    // Sauvegarde avec typage explicite
+    return await this.stockRepository.save<Stock>(stock);
+  }
+
+  async alimenterStockMultiple(
+    items: Array<{ productId: number; quantity: number }>,
+    companyId: number,
+  ): Promise<Stock[]> {
+    return Promise.all(
+      items.map((item) =>
+        this.alimenterStock(item.productId, companyId, item.quantity),
+      ),
+    );
+  }
+  async alimenterStock_items(
+    stockId: number,
+    items: {
+      imei_idu: string;
+      imei_odu: string;
+      serial_number: string;
+    }[],
+  ) {
+    const stock = await this.stockRepository.findOne({
+      where: { id: stockId },
+      relations: ['items'],
+    });
+
+    if (!stock) {
+      throw new Error('Stock non trouvé');
+    }
+
+    const existingItemCount = stock.items?.length || 0;
+    const totalAfterInsert = existingItemCount + items.length;
+    if (totalAfterInsert > stock.quantity) {
+      throw new Error(
+        `Le nombre total d'items (${totalAfterInsert}) dépasse la quantité disponible (${stock.quantity})`,
+      );
+    }
+
+    const stockItems = items.map((item) => {
+      const stockItem = this.stockItemRepository.create(item);
+      stockItem.stock = stock;
+      return stockItem;
+    });
+
+    return await this.stockItemRepository.save(stockItems);
   }
 }

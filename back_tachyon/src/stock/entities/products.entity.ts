@@ -11,6 +11,9 @@ export class Products {
   @Column({ unique: true })
   reference: string;
 
+  @Column({ default: false })
+  archived: boolean;
+
   @Column({ type: 'text' })
   description: string;
 

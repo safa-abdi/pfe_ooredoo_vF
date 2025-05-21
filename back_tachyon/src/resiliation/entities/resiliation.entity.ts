@@ -69,6 +69,9 @@ export class Resiliation {
   @Column({ nullable: true })
   DES_PACK: string;
 
+  @Column({ type: 'double', default: 0 })
+  SLARDV_Critique: number;
+
   @Column()
   OPENING_DATE_SUR_TIMOS: Date;
 

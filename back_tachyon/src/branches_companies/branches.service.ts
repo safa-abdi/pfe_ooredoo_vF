@@ -11,6 +11,9 @@ import { Company } from 'src/companies/entities/company.entity';
 import { CompanyDelegation } from './entities/CompanyDelegation';
 import { User } from 'src/users/entities/user.entity';
 import { Delegation } from './entities/Delegation.entity';
+import { Activation } from 'src/activation/entities/activation.entity';
+import { Plainte } from 'src/plaintes/entities/plaintes.entity';
+import { Resiliation } from 'src/resiliation/entities/resiliation.entity';
 
 @Injectable()
 export class BranchesService {
@@ -21,6 +24,13 @@ export class BranchesService {
     private readonly companyRepository: Repository<Company>,
     @InjectRepository(CompanyDelegation)
     private readonly companyDelegationRepository: Repository<CompanyDelegation>,
+    @InjectRepository(Activation)
+    private readonly activationRepository: Repository<Activation>,
+
+    @InjectRepository(Plainte)
+    private readonly plainteRepository: Repository<Plainte>,
+    @InjectRepository(Resiliation)
+    private readonly resiliationRepository: Repository<Resiliation>,
   ) {}
 
   async findAll() {
@@ -172,7 +182,9 @@ export class BranchesService {
 
     for (const delegation of delegations) {
       const technician = delegation.technicien;
-      const govName = delegation.delegation?.gouver?.name || 'Non spécifié';
+      const govName = (
+        delegation.delegation?.gouver?.name || 'Non spécifié'
+      ).toLowerCase();
 
       if (technician) {
         if (!groupedByGov[govName]) {
@@ -316,5 +328,168 @@ export class BranchesService {
       message: `Toutes les délégations du gouvernorat ${governorateName} ont été bloquées`,
       blockedCount: updateResult.affected || 0,
     };
+  }
+  // async getTempsMoyenPriseRDVParTechnicien(companyId: number): Promise<
+  //   {
+  //     technicienId: number;
+  //     technicienNom: string;
+  //     moyennePriseRDV: number;
+  //   }[]
+  // > {
+  //   const companyDelegations = await this.companyDelegationRepository.find({
+  //     where: { company: { id: companyId } },
+  //     relations: ['technicien'],
+  //   });
+
+  //   const technicienMap = new Map<
+  //     number,
+  //     {
+  //       technicienNom: string;
+  //       totalTemps: number;
+  //       count: number;
+  //     }
+  //   >();
+
+  //   for (const delegation of companyDelegations) {
+  //     const technicien = delegation.technicien;
+  //     if (!technicien) continue;
+
+  //     const activations = await this.activationRepository.find({
+  //       where: {
+  //         companyDelegation: { id: delegation.id },
+  //       },
+  //     });
+
+  //     const validTemps = activations
+  //       .map((act) => act.TEMPS_MOYEN_PRISE_RDV)
+  //       .filter((t): t is number => t !== null && !isNaN(t));
+
+  //     const total = validTemps.reduce((acc, val) => acc + val, 0);
+  //     const count = validTemps.length;
+
+  //     if (technicienMap.has(technicien.id)) {
+  //       const existing = technicienMap.get(technicien.id)!;
+  //       existing.totalTemps += total;
+  //       existing.count += count;
+  //     } else {
+  //       technicienMap.set(technicien.id, {
+  //         technicienNom: `${technicien.nom} ${technicien.prénom}`,
+  //         totalTemps: total,
+  //         count: count,
+  //       });
+  //     }
+  //   }
+
+  //   const result = Array.from(technicienMap.entries()).map(([id, data]) => ({
+  //     technicienId: id,
+  //     technicienNom: data.technicienNom,
+  //     moyennePriseRDV:
+  //       data.count > 0
+  //         ? parseFloat((data.totalTemps / data.count).toFixed(2))
+  //         : 0,
+  //   }));
+
+  //   return result;
+  // }
+  async getTempsMoyenParTechnicien(companyId: number): Promise<
+    {
+      technicienId: number;
+      technicienNom: string;
+      moyenneActivation: number;
+      moyennePlainte: number;
+      moyenneResiliation: number;
+    }[]
+  > {
+    const companyDelegations = await this.companyDelegationRepository.find({
+      where: { company: { id: companyId } },
+      relations: ['technicien'],
+    });
+
+    const technicienMap = new Map<
+      number,
+      {
+        technicienNom: string;
+        totalActivation: number;
+        countActivation: number;
+        totalPlainte: number;
+        countPlainte: number;
+        totalResiliation: number;
+        countResiliation: number;
+      }
+    >();
+
+    for (const delegation of companyDelegations) {
+      const technicien = delegation.technicien;
+      if (!technicien) continue;
+
+      const activations = await this.activationRepository.find({
+        where: { companyDelegation: { id: delegation.id } },
+      });
+
+      const plaintes = await this.plainteRepository.find({
+        where: { companyDelegation: { id: delegation.id } },
+      });
+
+      const resilations = await this.resiliationRepository.find({
+        where: { companyDelegation: { id: delegation.id } },
+      });
+
+      function calcTotalCount(
+        records: { TEMPS_MOYEN_PRISE_RDV?: number | null }[],
+      ) {
+        const validTemps = records
+          .map((r) => r.TEMPS_MOYEN_PRISE_RDV)
+          .filter(
+            (t): t is number => t !== undefined && t !== null && !isNaN(t),
+          );
+        return {
+          total: validTemps.reduce((acc, val) => acc + val, 0),
+          count: validTemps.length,
+        };
+      }
+
+      const actStats = calcTotalCount(activations);
+      const plainteStats = calcTotalCount(plaintes);
+      const resiliationStats = calcTotalCount(resilations);
+
+      if (technicienMap.has(technicien.id)) {
+        const existing = technicienMap.get(technicien.id)!;
+        existing.totalActivation += actStats.total;
+        existing.countActivation += actStats.count;
+        existing.totalPlainte += plainteStats.total;
+        existing.countPlainte += plainteStats.count;
+        existing.totalResiliation += resiliationStats.total;
+        existing.countResiliation += resiliationStats.count;
+      } else {
+        technicienMap.set(technicien.id, {
+          technicienNom: `${technicien.nom} ${technicien.prénom}`,
+          totalActivation: actStats.total,
+          countActivation: actStats.count,
+          totalPlainte: plainteStats.total,
+          countPlainte: plainteStats.count,
+          totalResiliation: resiliationStats.total,
+          countResiliation: resiliationStats.count,
+        });
+      }
+    }
+
+    return Array.from(technicienMap.entries()).map(([id, data]) => ({
+      technicienId: id,
+      technicienNom: data.technicienNom,
+      moyenneActivation:
+        data.countActivation > 0
+          ? parseFloat((data.totalActivation / data.countActivation).toFixed(2))
+          : 0,
+      moyennePlainte:
+        data.countPlainte > 0
+          ? parseFloat((data.totalPlainte / data.countPlainte).toFixed(2))
+          : 0,
+      moyenneResiliation:
+        data.countResiliation > 0
+          ? parseFloat(
+              (data.totalResiliation / data.countResiliation).toFixed(2),
+            )
+          : 0,
+    }));
   }
 }

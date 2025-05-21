@@ -5,6 +5,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   Query,
@@ -20,41 +21,6 @@ import { BatchClotureDto } from './dto/BatchClotureDto.dto';
 @Controller('activation')
 export class ActivationController {
   constructor(private readonly activationService: ActivationService) {}
-
-  // @Get('all')
-  // async findAll(
-  //   @Query('searchTerm') searchTerm: string,
-  //   @Query('page') page: number = 1,
-  //   @Query('limit') limit: number = 50,
-  //   @Query('REP_TRAVAUX_STT') REP_TRAVAUX_STT: string,
-  //   @Query('gouvernorat') gouvernorat: string,
-  //   @Query('delegation') delegation: string,
-  //   @Query('DATE_AFFECTATION_STT') DATE_AFFECTATION_STT: Date,
-  //   @Query('DES_PACK') DES_PACK: string,
-  //   @Query('offre') offre: string,
-  //   @Query('REP_RDV') REP_RDV: string,
-  //   @Query('DATE_PRISE_RDV') DATE_PRISE_RDV: Date,
-  //   @Query('CMT_RDV') CMT_RDV: string,
-  //   @Query('METRAGE_CABLE') METRAGE_CABLE: number,
-  //   @Query('STATUT') STATUT: string,
-  // ) {
-  //   return this.activationService.findAll(
-  //     searchTerm,
-  //     page,
-  //     limit,
-  //     REP_TRAVAUX_STT,
-  //     gouvernorat,
-  //     delegation,
-  //     DATE_AFFECTATION_STT,
-  //     DES_PACK,
-  //     offre,
-  //     REP_RDV,
-  //     DATE_PRISE_RDV,
-  //     CMT_RDV,
-  //     METRAGE_CABLE,
-  //     STATUT,
-  //   );
-  // }
 
   @Get('all_inprogress')
   async findAllInprogressWithCursor(
@@ -173,8 +139,8 @@ export class ActivationController {
   ) {
     const {
       searchTerm,
-      page = 1, // Valeur par défaut 1 pour la page
-      limit = 50, // Valeur par défaut 50 pour la limite
+      page = 1,
+      limit = 50,
       REP_TRAVAUX_STT,
       gouvernorat,
       delegation,
@@ -185,10 +151,9 @@ export class ActivationController {
       DATE_PRISE_RDV,
       CMT_RDV,
       METRAGE_CABLE,
-      STATUT, // Ajout du paramètre STATUT
+      STATUT,
     } = query;
 
-    // Conversion des paramètres au bon type
     const numericPage = page ? Number(page) : 1;
     const numericLimit = limit ? Number(limit) : 50;
 
@@ -278,18 +243,64 @@ export class ActivationController {
       message: `The STT with the highest average delay is ${result.nameStt} with an average of ${result.averageSlaStt} hours`,
     };
   }
+
   @Get('company/:companyId')
   async getByCompany(
-    @Param('companyId') companyId: number,
-    @Query() filters: ActivationFiltersDto,
-    @Query() pagination: PaginationDto,
+    @Param('companyId', ParseIntPipe) companyId: number,
+    @Query()
+    query: {
+      searchTerm?: string;
+      page?: number;
+      limit?: number;
+      REP_TRAVAUX_STT?: string;
+      gouvernorat?: string;
+      delegation?: string;
+      DATE_AFFECTATION_STT?: string;
+      DES_PACK?: string;
+      offre?: string;
+      REP_RDV?: string;
+      DATE_PRISE_RDV?: string;
+      CMT_RDV?: string;
+      METRAGE_CABLE?: number;
+      STATUT?: string;
+    },
   ) {
+    const {
+      searchTerm,
+      page = 1,
+      limit = 50,
+      REP_TRAVAUX_STT,
+      gouvernorat,
+      delegation,
+      DATE_AFFECTATION_STT,
+      DES_PACK,
+      offre,
+      REP_RDV,
+      DATE_PRISE_RDV,
+      CMT_RDV,
+      METRAGE_CABLE,
+      STATUT,
+    } = query;
+
     return this.activationService.findActivationsByCompany(
       companyId,
-      filters,
-      pagination,
+      searchTerm,
+      page,
+      limit,
+      REP_TRAVAUX_STT,
+      gouvernorat,
+      delegation,
+      DATE_AFFECTATION_STT,
+      DES_PACK,
+      offre,
+      REP_RDV,
+      DATE_PRISE_RDV,
+      CMT_RDV,
+      METRAGE_CABLE,
+      STATUT,
     );
   }
+
   @Get('test-auto-affectation')
   async testerAutoAffectation() {
     return this.activationService.testerAutoAffectationSurDonneesExistantes();

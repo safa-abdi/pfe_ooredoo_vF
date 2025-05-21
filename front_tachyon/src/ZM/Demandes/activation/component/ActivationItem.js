@@ -6,7 +6,7 @@ import './activationList.css';
 import { BASE_API_URL } from '../../../../config';
 import { faPersonDigging, faUserSlash, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 
-const ActivationItem = ({ activation, isSelected, onToggleSelect, onClick, onReassign ,onAssignmentComplete}) => {
+const ActivationItem = ({ activation, isSelected, onToggleSelect, onClick, onReassign, onAssignmentComplete }) => {
   const [isMapPopupOpen, setIsMapPopupOpen] = useState(false);
   const [assignMessage, setAssignMessage] = useState('');
   const [matchingSTTs, setMatchingSTTs] = useState([]);
@@ -88,13 +88,13 @@ const ActivationItem = ({ activation, isSelected, onToggleSelect, onClick, onRea
         body: JSON.stringify(requestBody),
       });
 
-      console.log("assign response",assignResponse.status)
+      console.log("assign response", assignResponse.status)
       if (assignResponse.status === 200) {
-  const result = await assignResponse.json();
-  setIsMapPopupOpen(false); 
-  if (onAssignmentComplete) onAssignmentComplete();
-  return result;
-}
+        const result = await assignResponse.json();
+        setIsMapPopupOpen(false);
+        if (onAssignmentComplete) onAssignmentComplete();
+        return result;
+      }
       const result = await assignResponse.json();
       return result;
 
@@ -129,12 +129,12 @@ const ActivationItem = ({ activation, isSelected, onToggleSelect, onClick, onRea
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to link activation');
       }
-  const result = await response.json();
-  setIsMapPopupOpen(false);
-  if (onAssignmentComplete) onAssignmentComplete(); // Refresh data
-  setAssignMessage(`Activation ${activation.crm_case} linked successfully`);
-  setTimeout(() => setAssignMessage(null), 4000);
-  return result;
+      const result = await response.json();
+      setIsMapPopupOpen(false);
+      if (onAssignmentComplete) onAssignmentComplete();
+      setAssignMessage(`Activation ${activation.crm_case} linked successfully`);
+      setTimeout(() => setAssignMessage(null), 4000);
+      return result;
     } catch (error) {
       console.error('Link STT error:', error);
       setAssignMessage(error.message);
@@ -143,77 +143,77 @@ const ActivationItem = ({ activation, isSelected, onToggleSelect, onClick, onRea
   };
 
   const findMatchingSTTs = async () => {
-  try {
-    const response = await fetch(`${BASE_API_URL}/companies/unblocked`);
-    if (!response.ok) throw new Error('Erreur lors de la récupération des STT');
-    const sttList = await response.json();
+    try {
+      const response = await fetch(`${BASE_API_URL}/companies/unblocked`);
+      if (!response.ok) throw new Error('Erreur lors de la récupération des STT');
+      const sttList = await response.json();
 
-    setAllSTTs(sttList);
+      setAllSTTs(sttList);
 
-    const foundSTTs = [];
-    const addedNames = new Set(); // Pour stocker les noms déjà ajoutés
+      const foundSTTs = [];
+      const addedNames = new Set();
 
-    sttList.forEach(stt => {
-      if (
-        stt.governorate === activation.Gouvernorat &&
-        (stt.delegation === activation.Delegation || !stt.delegation) &&
-        !stt.blocked &&
-        !addedNames.has(stt.name)
-      ) {
-        foundSTTs.push({
-          ...stt,
-          type: 'STT principal',
-          companyId: stt.id
-        });
-        addedNames.add(stt.name); // Marquer ce nom comme ajouté
-      }
-    });
+      sttList.forEach(stt => {
+        if (
+          stt.governorate === activation.Gouvernorat &&
+          (stt.delegation === activation.Delegation || !stt.delegation) &&
+          !stt.blocked &&
+          !addedNames.has(stt.name)
+        ) {
+          foundSTTs.push({
+            ...stt,
+            type: 'STT principal',
+            companyId: stt.id
+          });
+          addedNames.add(stt.name);
+        }
+      });
 
-    sttList.forEach(stt => {
-      if (stt.companyDelegations && Array.isArray(stt.companyDelegations)) {
-        stt.companyDelegations.forEach(companyDelegation => {
-          if (
-            companyDelegation &&
-            companyDelegation.delegation &&
-            companyDelegation.delegation.gouver &&
-            !companyDelegation.blocked
-          ) {
-            const gouverName = companyDelegation.delegation.gouver.name;
-            const delegationName = companyDelegation.delegation.name;
-
+      sttList.forEach(stt => {
+        if (stt.companyDelegations && Array.isArray(stt.companyDelegations)) {
+          stt.companyDelegations.forEach(companyDelegation => {
             if (
-              gouverName.toLowerCase() === activation.Gouvernorat.toLowerCase() &&
-              delegationName.toLowerCase() === activation.Delegation.toLowerCase() &&
-              !addedNames.has(stt.name)
+              companyDelegation &&
+              companyDelegation.delegation &&
+              companyDelegation.delegation.gouver &&
+              !companyDelegation.blocked
             ) {
-              foundSTTs.push({
-                ...stt,
-                companyDelegationId: companyDelegation.id,
-                delegationName,
-                gouvernoratName: gouverName,
-                type: 'CompanyDelegation'
-              });
-              addedNames.add(stt.name);
-            }
-          }
-        });
-      }
-    });
+              const gouverName = companyDelegation.delegation.gouver.name;
+              const delegationName = companyDelegation.delegation.name;
 
-    setMatchingSTTs(foundSTTs);
-    console.log("liste stt non bloquées", foundSTTs);
-    return foundSTTs;
-  } catch (error) {
-    console.error(error);
-    setAssignMessage('Erreur lors de la recherche des STT.');
-    return [];
-  }
-};
+              if (
+                gouverName.toLowerCase() === activation.Gouvernorat.toLowerCase() &&
+                delegationName.toLowerCase() === activation.Delegation.toLowerCase() &&
+                !addedNames.has(stt.name)
+              ) {
+                foundSTTs.push({
+                  ...stt,
+                  companyDelegationId: companyDelegation.id,
+                  delegationName,
+                  gouvernoratName: gouverName,
+                  type: 'CompanyDelegation'
+                });
+                addedNames.add(stt.name);
+              }
+            }
+          });
+        }
+      });
+
+      setMatchingSTTs(foundSTTs);
+      console.log("liste stt non bloquées", foundSTTs);
+      return foundSTTs;
+    } catch (error) {
+      console.error(error);
+      setAssignMessage('Erreur lors de la recherche des STT.');
+      return [];
+    }
+  };
   return (
     <div className={`activation-item ${isSelected ? 'selected' : ''}`}>
       <div className="activation-item-header">
         <div className="activation-header-left">
-          {activation.STATUT.toLowerCase() !== 'abandonnée' && activation.STATUT.toLowerCase() !== 'terminé' && (
+          {activation.STATUT.toLowerCase() !== 'abandonné' && activation.REP_TRAVAUX_STT.toLowerCase() !== 'installé par le client' && activation.STATUT.toLowerCase() !== 'gelé' && activation.STATUT.toLowerCase() !== 'terminé' && (
             <label className="custom-checkbox">
               <input
                 type="checkbox"
@@ -283,5 +283,5 @@ const ActivationItem = ({ activation, isSelected, onToggleSelect, onClick, onRea
       {assignMessage && <p className="assign-message">{assignMessage}</p>}
     </div>
   );
-};
+}
 export default ActivationItem;

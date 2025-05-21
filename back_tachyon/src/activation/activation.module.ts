@@ -21,12 +21,24 @@ import { PdfController } from './pv.controller';
 import { CacheService } from 'src/cache/cache.service';
 import { History } from 'src/history/entities/history.entity';
 import { HistoryService } from 'src/history/history.service';
+import { Plainte } from 'src/plaintes/entities/plaintes.entity';
+import { Resiliation } from 'src/resiliation/entities/resiliation.entity';
+import { User } from 'src/users/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Activation, Company, Branch, Prod_imei, History]),
+    TypeOrmModule.forFeature([
+      Activation,
+      Company,
+      Branch,
+      Prod_imei,
+      History,
+      Plainte,
+      Resiliation,
+      User,
+    ]),
     CacheModule.register({
-      ttl: 60 * 60 * 1, // Cache pour 1 heure
+      ttl: 60 * 60 * 1,
     }),
     ScheduleModule.forRoot(),
     CompanyDelegationModule,

@@ -5,10 +5,11 @@ import {
   ManyToOne,
   JoinColumn,
   BeforeInsert,
+  OneToMany,
 } from 'typeorm';
 import { Products } from './products.entity';
-import { Branch } from 'src/branches_companies/entities/Branch.entity';
 import { Company } from 'src/companies/entities/company.entity';
+import { StockItem } from './stock-item.entity';
 
 @Entity()
 export class Stock {
@@ -23,10 +24,6 @@ export class Stock {
   @JoinColumn({ name: 'company_id' })
   company: Company;
 
-  @ManyToOne(() => Branch, { nullable: true })
-  @JoinColumn({ name: 'branch_id' })
-  branch: Branch;
-
   @Column()
   quantity: number;
 
@@ -38,7 +35,9 @@ export class Stock {
 
   @Column({ nullable: true })
   DPM_quantity: number;
-  
+
+  @OneToMany(() => StockItem, (item) => item.stock, { cascade: true })
+  items: StockItem[];
 
   @BeforeInsert()
   setDefaultDPMQuantity() {
@@ -49,5 +48,4 @@ export class Stock {
 
   @Column({ type: 'boolean', default: true })
   global: boolean;
-
 }

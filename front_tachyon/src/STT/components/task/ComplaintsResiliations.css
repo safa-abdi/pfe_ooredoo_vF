@@ -1,0 +1,68 @@
+/* Styles pour les plaintes */
+.complaint-card, .termination-card {
+  background: white;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.complaint-card:hover, .termination-card:hover {
+  transform: translateY(-2px);
+}
+
+.complaint-main, .termination-main {
+  flex: 1;
+}
+
+.case-id {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.complaint-meta, .termination-meta {
+  display: flex;
+  gap: 15px;
+  margin-top: 5px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.complaint-date, .termination-date {
+  margin-top: 5px;
+  font-size: 0.8rem;
+  color: #777;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.severity {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.reason {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Styles pour les différents niveaux de sévérité */
+.severity.high {
+  color: #ff6b6b;
+}
+
+.severity.medium {
+  color: #feca57;
+}
+
+.severity.low {
+  color: #1dd1a1;
+}

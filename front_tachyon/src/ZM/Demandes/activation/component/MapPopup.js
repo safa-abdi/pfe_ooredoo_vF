@@ -53,7 +53,7 @@ const MapPopup = ({ isOpen, onRequestClose, latitude, longitude, onAssignSTT, re
         </MapContainer>
       </div>
 
-      {STTList && STTList.length > 0 && (
+      {STTList && STTList.length > 0 && statut === "En cours" && statut === "gelé"&& (
         <div style={{ width: '100%', margin: '10px 0' }}>
           <label>Sélectionnez un STT: </label>
           <select
@@ -83,7 +83,7 @@ const MapPopup = ({ isOpen, onRequestClose, latitude, longitude, onAssignSTT, re
   try {
     const result = await onAssignSTT(selectedSTT);
     if (result) {
-      onRequestClose(); // Close modal
+      onRequestClose(); 
       setSelectedSTT(null);
       setAssignMessage('STT affecté avec succès !');
     }

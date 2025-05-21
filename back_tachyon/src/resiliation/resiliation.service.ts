@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -22,6 +23,17 @@ import { ResiliationFrozenDto } from './dto/resiliationfrozen.dto';
 import { UpdateResiliationDto } from './dto/update-res.dto';
 import { BatchClotureDto } from './dto/BatchClotureRes.dto';
 import { BatchAssignSttDto } from './dto/batch-assign-stt.dto';
+
+export type ResiliationWithoutPdf = Omit<
+  Resiliation,
+  | 'pdfFile'
+  | 'pdfMimeType'
+  | 'calculateSLAs'
+  | 'normalizeDates'
+  | 'parseDate'
+  | 'calcHoursDiff'
+>;
+
 @Injectable()
 export class ResiliationService {
   private readonly logger = new Logger(ResiliationService.name);
@@ -155,7 +167,129 @@ export class ResiliationService {
       count: parseInt(r.count, 10),
     }));
   }
+  async findResiliaByCompany(
+    companyId: number,
+    searchTerm?: string,
+    page: number = 1,
+    limit: number = 50,
+    REP_TRAVAUX_STT?: string,
+    gouvernorat?: string,
+    delegation?: string,
+    DATE_AFFECTATION_STT?: string,
+    DES_PACK?: string,
+    Detail?: string,
+    REP_RDV?: string,
+    DATE_PRISE_RDV?: string,
+    CMT_RDV?: string,
+    Description?: number,
+    STATUT?: string,
+  ): Promise<{ data: ResiliationWithoutPdf[]; total: number }> {
+    const queryBuilder = this.ResiliationRepository.createQueryBuilder(
+      'p',
+    ).where('p.company_id = :companyId', { companyId });
 
+    const validatedPage = Math.max(page, 1);
+    const validatedLimit = Math.min(limit, 100);
+
+    queryBuilder
+      .orderBy('p.crm_case', 'ASC')
+      .skip((validatedPage - 1) * validatedLimit)
+      .take(validatedLimit);
+
+    if (searchTerm) {
+      const likeCondition = (field: string) =>
+        new Brackets((qb) => {
+          qb.where(`p.${field} LIKE :searchTerm`, {
+            searchTerm: `%${searchTerm}%`,
+          });
+        });
+
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.orWhere(likeCondition('CLIENT'))
+            .orWhere(likeCondition('MSISDN'))
+            .orWhere(likeCondition('CONTACT1_CLIENT'))
+            .orWhere(likeCondition('CONTACT2_CLIENT'))
+            .orWhere(likeCondition('Gouvernorat'))
+            .orWhere(likeCondition('Delegation'))
+            .orWhere(likeCondition('crm_case'))
+            .orWhere(likeCondition('STT'))
+            .orWhere(likeCondition('Detail'));
+        }),
+      );
+    }
+
+    const filters = {
+      REP_TRAVAUX_STT,
+      Gouvernorat: gouvernorat,
+      Delegation: delegation,
+      DATE_AFFECTATION_STT,
+      DES_PACK,
+      Detail,
+      REP_RDV,
+      DATE_PRISE_RDV,
+      CMT_RDV,
+      Description,
+      STATUT,
+    };
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (typeof value === 'string') {
+          queryBuilder.andWhere(`p.${key} LIKE :${key}`, {
+            [key]: `%${value}%`,
+          });
+        } else {
+          queryBuilder.andWhere(`p.${key} = :${key}`, { [key]: value });
+        }
+      }
+    });
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data: data.map(({ pdfFile, ...rest }) => rest),
+      total,
+    };
+  }
+
+  async getPaginatedStats(page: number = 1, limit: number = 50) {
+    const queryBuilder = this.ResiliationRepository.createQueryBuilder('r')
+      .select([
+        'r.STT as "stt"',
+        'COUNT(r.crm_case) as "total"',
+        `SUM(CASE WHEN r.STATUT = 'Terminé' THEN 1 ELSE 0 END) as "termine"`,
+        `SUM(CASE WHEN r.STATUT = 'En cours' THEN 1 ELSE 0 END) as "enCours"`,
+        `SUM(CASE WHEN r.STATUT = 'Abandonné' THEN 1 ELSE 0 END) as "abandonne"`,
+      ])
+      .where('r.STT IS NOT NULL AND r.STT != :empty', { empty: '' })
+      .groupBy('r.STT')
+      .orderBy('"total"', 'DESC');
+
+    if (limit > 0) {
+      queryBuilder.offset((page - 1) * limit).limit(limit);
+    }
+
+    const [items, total] = await Promise.all([
+      queryBuilder.getRawMany(),
+      queryBuilder.getCount(),
+    ]);
+
+    return {
+      data: items.map((item) => ({
+        stt: item.stt,
+        total: parseInt(item.total),
+        terminated: parseInt(item.termine), // Notez le mapping ici
+        inProgress: parseInt(item.enCours),
+        abandoned: parseInt(item.abandonne),
+      })),
+      meta: {
+        total,
+        page,
+        last_page: limit > 0 ? Math.ceil(total / limit) : 1,
+      },
+    };
+  }
   async assignSTTToresiliation(
     resiliationId: number,
     sttName: string,
@@ -204,6 +338,55 @@ export class ResiliationService {
     return await this.ResiliationRepository.save(resiliation);
   }
 
+  private async getAverageSLA(groupBy: string, period: string) {
+    let dateCondition = '';
+    if (period === 'week') {
+      dateCondition = `DATE_PART('week', a.last_sync) = DATE_PART('week', NOW())`;
+    } else if (period === 'month') {
+      dateCondition = `DATE_PART('month', a.last_sync) = DATE_PART('month', NOW())`;
+    } else if (period === 'year') {
+      dateCondition = `DATE_PART('year', a.last_sync) = DATE_PART('year', NOW())`;
+    }
+
+    const whereConditions = [
+      dateCondition,
+      groupBy === 'STT' ? "a.STT IS NOT NULL AND a.STT != ''" : '1=1',
+    ]
+      .filter(Boolean)
+      .join(' AND ');
+
+    const groupedResults = await this.ResiliationRepository.createQueryBuilder(
+      'a',
+    )
+      .select([
+        `${groupBy} AS group_by`,
+        `AVG(a.SLA_STT) AS avg_sla_stt`,
+        `AVG(a.TEMPS_MOYEN_PRISE_RDV) AS avg_temps_rdv`,
+      ])
+      .where(whereConditions)
+      .groupBy(groupBy)
+      .getRawMany();
+
+    const globalResults = await this.ResiliationRepository.createQueryBuilder(
+      'a',
+    )
+      .select([
+        `AVG(a.SLA_EQUIPE_FIXE) AS avg_sla_equipe`,
+        `AVG(a.TEMPS_MOYEN_AFFECTATION_STT) AS avg_temps_affectation`,
+      ])
+      .where(dateCondition)
+      .getRawOne();
+
+    return {
+      avg_sla_equipe: globalResults.avg_sla_equipe || 0,
+      avg_temps_affectation: globalResults.avg_temps_affectation || 0,
+      details: groupedResults.filter((item) => item.group_by),
+    };
+  }
+
+  async getAverageSLABySTT(period: string) {
+    return this.getAverageSLA('STT', period);
+  }
   async findAllPblemCursorPaginated(
     lastId: number | null = null,
     limit: number = 100,
@@ -291,140 +474,6 @@ export class ResiliationService {
       hasMore,
     };
   }
-
-  // async findAllValidresiliationsCursorPaginated(
-  //   searchTerm?: string,
-  //   page: number = 1,
-  //   limit: number = 50,
-  //   REP_TRAVAUX_STT?: string,
-  //   gouvernorat?: string,
-  //   delegation?: string,
-  //   DATE_AFFECTATION_STT?: string,
-  //   DES_PACK?: string,
-  //   offre?: string,
-  //   REP_RDV?: string,
-  //   DATE_PRISE_RDV?: string,
-  //   CMT_RDV?: string,
-  //   STATUT?: string,
-  // ): Promise<{
-  //   total: number;
-  //   data: any[];
-  // }> {
-  //   const baseQuery = this.ResiliationRepository.createQueryBuilder('p').where(
-  //     new Brackets((qb) => {
-  //       qb.where("p.STATUT NOT IN ('En cours', 'Gelé')").orWhere(
-  //         new Brackets((subQb) => {
-  //           subQb
-  //             .where("p.STATUT IN ('En cours', 'Gelé')")
-  //             .andWhere('p.LONGITUDE_SITE != 0')
-  //             .andWhere('p.LONGITUDE_SITE BETWEEN 6 AND 11')
-  //             .andWhere('p.LATITUDE_SITE != 0')
-  //             .andWhere('p.LATITUDE_SITE BETWEEN 30 AND 38')
-  //             .andWhere('p.Gouvernorat IS NOT NULL')
-  //             .andWhere("p.Gouvernorat != ''");
-  //         }),
-  //       );
-  //     }),
-  //   );
-
-  //   const queryBuilder = baseQuery
-  //     .orderBy('p.crm_case', 'ASC')
-  //     .skip((page - 1) * limit)
-  //     .take(limit);
-
-  //   if (searchTerm) {
-  //     queryBuilder.andWhere(
-  //       new Brackets((qb) => {
-  //         qb.where('p.CLIENT LIKE :searchTerm', {
-  //           searchTerm: `%${searchTerm}%`,
-  //         })
-  //           .orWhere('p.MSISDN LIKE :searchTerm', {
-  //             searchTerm: `%${searchTerm}%`,
-  //           })
-  //           .orWhere('p.CONTACT_CLIENT LIKE :searchTerm', {
-  //             searchTerm: `%${searchTerm}%`,
-  //           })
-  //           .orWhere('p.Gouvernorat LIKE :searchTerm', {
-  //             searchTerm: `%${searchTerm}%`,
-  //           })
-  //           .orWhere('p.Delegation LIKE :searchTerm', {
-  //             searchTerm: `%${searchTerm}%`,
-  //           })
-  //           .orWhere('p.crm_case LIKE :searchTerm', {
-  //             searchTerm: `%${searchTerm}%`,
-  //           })
-  //           .orWhere('p.STT LIKE :searchTerm', {
-  //             searchTerm: `%${searchTerm}%`,
-  //           })
-  //           .orWhere('p.offre LIKE :searchTerm', {
-  //             searchTerm: `%${searchTerm}%`,
-  //           });
-  //       }),
-  //     );
-  //   }
-
-  //   // Filtres supplémentaires
-  //   if (REP_TRAVAUX_STT) {
-  //     queryBuilder.andWhere('p.REP_TRAVAUX_STT = :REP_TRAVAUX_STT', {
-  //       REP_TRAVAUX_STT,
-  //     });
-  //   }
-
-  //   if (gouvernorat) {
-  //     queryBuilder.andWhere('p.Gouvernorat LIKE :gouvernorat', {
-  //       gouvernorat: `%${gouvernorat}%`,
-  //     });
-  //   }
-
-  //   if (delegation) {
-  //     queryBuilder.andWhere('p.Delegation LIKE :delegation', {
-  //       delegation: `%${delegation}%`,
-  //     });
-  //   }
-
-  //   if (DATE_AFFECTATION_STT) {
-  //     queryBuilder.andWhere('p.DATE_AFFECTATION_STT = :DATE_AFFECTATION_STT', {
-  //       DATE_AFFECTATION_STT,
-  //     });
-  //   }
-
-  //   if (DES_PACK) {
-  //     queryBuilder.andWhere('p.DES_PACK LIKE :DES_PACK', {
-  //       DES_PACK: `%${DES_PACK}%`,
-  //     });
-  //   }
-
-  //   if (offre) {
-  //     queryBuilder.andWhere('p.offre LIKE :offre', { offre: `%${offre}%` });
-  //   }
-
-  //   if (REP_RDV) {
-  //     queryBuilder.andWhere('p.REP_RDV = :REP_RDV', { REP_RDV });
-  //   }
-
-  //   if (DATE_PRISE_RDV) {
-  //     queryBuilder.andWhere('p.DATE_PRISE_RDV = :DATE_PRISE_RDV', {
-  //       DATE_PRISE_RDV,
-  //     });
-  //   }
-
-  //   if (CMT_RDV) {
-  //     queryBuilder.andWhere('p.CMT_RDV LIKE :CMT_RDV', {
-  //       CMT_RDV: `%${CMT_RDV}%`,
-  //     });
-  //   }
-
-  //   if (STATUT) {
-  //     queryBuilder.andWhere('p.STATUT = :STATUT', { STATUT });
-  //   }
-
-  //   const [data, total] = await queryBuilder.getManyAndCount();
-
-  //   return {
-  //     data,
-  //     total,
-  //   };
-  // }
 
   async findAllValidResiliationsCursorPaginated(
     searchTerm?: string,

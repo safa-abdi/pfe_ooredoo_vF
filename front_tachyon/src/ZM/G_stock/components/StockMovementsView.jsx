@@ -165,7 +165,6 @@ const StockMovementsView = ({
     try {
       setLoading(true);
 
-      // Préparer les données pour l'API
       const payload = {
         date_prelevement: prelevDate,
         movements_ids: selectedGroup.movements
@@ -234,7 +233,6 @@ const StockMovementsView = ({
             <div className="bon-header">
               <h3>Bon : {group.bon}</h3>
               <div className="group-actions">
-                {/* Bouton Valider - affiché seulement si tous les mouvements sont en RDV */}
                 {group.movements.length > 0 && group.movements.every(m => m.etat === 1) && (
                   <button
                     onClick={() => handleValidateGroup(group)}
@@ -245,7 +243,6 @@ const StockMovementsView = ({
                   </button>
                 )}
 
-                {/* Boutons Annuler et Planifier RDV - affichés seulement s'il y a des mouvements en attente */}
                 {group.movements.some(m => m.etat === 0) && (
                   <>
                     <button

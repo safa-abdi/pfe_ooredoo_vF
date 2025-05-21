@@ -182,17 +182,14 @@ export class ActivationService {
       });
     }
 
-    // Filtre par statut (avec valeur par défaut 'En cours')
     queryBuilder.andWhere('activation.STATUT = :STATUT', { STATUT });
 
-    // Récupération des résultats (+1 pour vérifier s'il y a une page suivante)
     const results = await queryBuilder.take(limit + 1).getMany();
 
     const sanitizedResults: ActivationWithoutPdf[] = results.map(
       ({ pdfFile, ...rest }) => rest,
     );
 
-    // Gestion de la pagination
     const hasNext = results.length > limit;
     const data = hasNext ? sanitizedResults.slice(0, limit) : sanitizedResults;
     const nextCursor = hasNext ? data[data.length - 1].crm_case : null;
@@ -814,7 +811,7 @@ export class ActivationService {
       .select([
         'activation.NAME_STT as nameStt',
         'AVG(activation.SLA_STT) as averageSlaStt',
-        'COUNT(activation.crm_case) as activationCount', // Ajout du comptage
+        'COUNT(activation.crm_case) as activationCount',
       ])
       .where('activation.NAME_STT IS NOT NULL')
       .andWhere('activation.SLA_STT IS NOT NULL')
@@ -828,74 +825,158 @@ export class ActivationService {
 
   async findActivationsByCompany(
     companyId: number,
-    filters: {
-      startDate?: Date;
-      endDate?: Date;
-      status?: string;
-      msisdn?: string;
-      client?: string;
-      gouvernorat?: string;
-    },
-    pagination: PaginationDto,
-  ) {
-    const query = this.activationRepository
-      .createQueryBuilder('activation')
-      .leftJoinAndSelect('activation.company', 'company')
-      .leftJoinAndSelect('activation.companyDelegation', 'CompanyDelegation')
-      .where('company.id = :companyId', { companyId });
+    searchTerm?: string,
+    page: number = 1,
+    limit: number = 50,
+    REP_TRAVAUX_STT?: string,
+    gouvernorat?: string,
+    delegation?: string,
+    DATE_AFFECTATION_STT?: string,
+    DES_PACK?: string,
+    offre?: string,
+    REP_RDV?: string,
+    DATE_PRISE_RDV?: string,
+    CMT_RDV?: string,
+    METRAGE_CABLE?: number,
+    STATUT?: string,
+  ): Promise<{ data: ActivationWithoutPdf[]; total: number }> {
+    const queryBuilder = this.activationRepository
+      .createQueryBuilder('p')
+      .where('p.company_id = :companyId', { companyId });
 
-    // Appliquer les filtres dynamiquement
-    if (filters.startDate && filters.endDate) {
-      query.andWhere({
-        OPENING_DATE_SUR_TIMOS: Between(filters.startDate, filters.endDate),
-      });
-    } else if (filters.startDate) {
-      query.andWhere({
-        OPENING_DATE_SUR_TIMOS: MoreThanOrEqual(filters.startDate),
-      });
-    } else if (filters.endDate) {
-      query.andWhere({
-        OPENING_DATE_SUR_TIMOS: LessThanOrEqual(filters.endDate),
-      });
+    const validatedPage = Math.max(page, 1);
+    const validatedLimit = Math.min(limit, 100);
+
+    queryBuilder
+      .orderBy('p.crm_case', 'ASC')
+      .skip((validatedPage - 1) * validatedLimit)
+      .take(validatedLimit);
+
+    if (searchTerm) {
+      const likeCondition = (field: string) =>
+        new Brackets((qb) => {
+          qb.where(`p.${field} LIKE :searchTerm`, {
+            searchTerm: `%${searchTerm}%`,
+          });
+        });
+
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.orWhere(likeCondition('CLIENT'))
+            .orWhere(likeCondition('MSISDN'))
+            .orWhere(likeCondition('CONTACT_CLIENT'))
+            .orWhere(likeCondition('Gouvernorat'))
+            .orWhere(likeCondition('Delegation'))
+            .orWhere(likeCondition('crm_case'))
+            .orWhere(likeCondition('NAME_STT'))
+            .orWhere(likeCondition('offre'));
+        }),
+      );
     }
 
-    if (filters.status) {
-      query.andWhere('activation.STATUT LIKE :status', {
-        status: `%${filters.status}%`,
-      });
-    }
+    // Filtres dynamiques
+    const filters = {
+      REP_TRAVAUX_STT,
+      Gouvernorat: gouvernorat,
+      Delegation: delegation,
+      DATE_AFFECTATION_STT,
+      DES_PACK,
+      offre,
+      REP_RDV,
+      DATE_PRISE_RDV,
+      CMT_RDV,
+      METRAGE_CABLE,
+      STATUT,
+    };
 
-    if (filters.msisdn) {
-      query.andWhere('activation.MSISDN LIKE :msisdn', {
-        msisdn: `%${filters.msisdn}%`,
-      });
-    }
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (typeof value === 'string') {
+          queryBuilder.andWhere(`p.${key} LIKE :${key}`, {
+            [key]: `%${value}%`,
+          });
+        } else {
+          queryBuilder.andWhere(`p.${key} = :${key}`, { [key]: value });
+        }
+      }
+    });
 
-    if (filters.client) {
-      query.andWhere('activation.CLIENT LIKE :client', {
-        client: `%${filters.client}%`,
-      });
-    }
-
-    if (filters.gouvernorat) {
-      query.andWhere('activation.Gouvernorat LIKE :gouvernorat', {
-        gouvernorat: `%${filters.gouvernorat}%`,
-      });
-    }
-
-    // Pagination
-    const [data, total] = await query
-      .skip(pagination.skip)
-      .take(pagination.take)
-      .getManyAndCount();
+    const [data, total] = await queryBuilder.getManyAndCount();
 
     return {
-      data,
+      data: data.map(({ pdfFile, ...rest }) => rest),
       total,
-      page: pagination.page,
-      limit: pagination.take,
     };
   }
+
+  // async findActivationsByCompany(
+  //   companyId: number,
+  //   filters: {
+  //     startDate?: Date;
+  //     endDate?: Date;
+  //     status?: string;
+  //     msisdn?: string;
+  //     client?: string;
+  //     gouvernorat?: string;
+  //   },
+  //   pagination: PaginationDto,
+  // ) {
+  //   const query = this.activationRepository
+  //     .createQueryBuilder('activation')
+  //     .leftJoinAndSelect('activation.company', 'company')
+  //     .leftJoinAndSelect('activation.companyDelegation', 'CompanyDelegation')
+  //     .where('company.id = :companyId', { companyId });
+
+  //   if (filters.startDate && filters.endDate) {
+  //     query.andWhere({
+  //       OPENING_DATE_SUR_TIMOS: Between(filters.startDate, filters.endDate),
+  //     });
+  //   } else if (filters.startDate) {
+  //     query.andWhere({
+  //       OPENING_DATE_SUR_TIMOS: MoreThanOrEqual(filters.startDate),
+  //     });
+  //   } else if (filters.endDate) {
+  //     query.andWhere({
+  //       OPENING_DATE_SUR_TIMOS: LessThanOrEqual(filters.endDate),
+  //     });
+  //   }
+
+  //   if (filters.status) {
+  //     query.andWhere('activation.STATUT LIKE :status', {
+  //       status: `%${filters.status}%`,
+  //     });
+  //   }
+
+  //   if (filters.msisdn) {
+  //     query.andWhere('activation.MSISDN LIKE :msisdn', {
+  //       msisdn: `%${filters.msisdn}%`,
+  //     });
+  //   }
+
+  //   if (filters.client) {
+  //     query.andWhere('activation.CLIENT LIKE :client', {
+  //       client: `%${filters.client}%`,
+  //     });
+  //   }
+
+  //   if (filters.gouvernorat) {
+  //     query.andWhere('activation.Gouvernorat LIKE :gouvernorat', {
+  //       gouvernorat: `%${filters.gouvernorat}%`,
+  //     });
+  //   }
+
+  //   const [data, total] = await query
+  //     .skip(pagination.skip)
+  //     .take(pagination.take)
+  //     .getManyAndCount();
+
+  //   return {
+  //     data,
+  //     total,
+  //     page: pagination.page,
+  //     limit: pagination.take,
+  //   };
+  // }
   async findActivationsByCompanyAndTechnician(
     companyId: number,
     technicienId: number,
@@ -909,7 +990,6 @@ export class ActivationService {
       .where('company.id = :companyId', { companyId })
       .andWhere('technicien.id = :technicienId', { technicienId });
 
-    // Pagination
     const [data, total] = await query
       .skip(pagination.skip)
       .take(pagination.take)
@@ -1008,7 +1088,6 @@ export class ActivationService {
       dateCondition = `DATE_PART('year', a.last_sync) = DATE_PART('year', NOW())`;
     }
 
-    // Ajout de la condition pour exclure les NAME_STT vides
     const whereConditions = [
       dateCondition,
       groupBy === 'NAME_STT'
@@ -1158,7 +1237,6 @@ export class ActivationService {
   ): Promise<{
     [companyName: string]: { count: number; data: ActivationFrozenDto[] };
   }> {
-    // Récupérer toutes les activations en cours avec les relations company
     const activations = await this.activationRepository.find({
       where: {
         STATUT: 'En cours',
@@ -1169,7 +1247,6 @@ export class ActivationService {
       take: limit,
     });
 
-    // Grouper par nom de société
     const groupedResult = activations.reduce(
       (acc, activation) => {
         const companyName = activation.company?.name || 'Unknown';
@@ -1222,7 +1299,6 @@ export class ActivationService {
   ): Promise<{
     [companyName: string]: { count: number; data: ActivationFrozenDto[] };
   }> {
-    // Récupérer toutes les activations en cours avec les relations company
     const activations = await this.activationRepository.find({
       where: {
         STATUT: 'En cours',

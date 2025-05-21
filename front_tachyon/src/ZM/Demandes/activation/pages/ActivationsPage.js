@@ -37,8 +37,37 @@ const ActivationsPage = () => {
     "Kasserine", "Kébili", "Le Kef", "Mahdia", "La Manouba", "Médenine", "Monastir",
     "Nabeul", "Sfax", "Sidi Bouzid", "Siliana", "Sousse", "Tataouine", "Tozeur", "Tunis", "Zaghouan",
   ];
+  const handleExport = async () => {
+    try {
+      const exportParams = {
+        searchTerm,
+        ...filters
+      };
 
-const [selectedActivations, setSelectedActivations] = useState([]);
+      const cleanedParams = Object.fromEntries(
+        Object.entries(exportParams).filter(([_, value]) => value !== '')
+      );
+
+      const queryString = new URLSearchParams(cleanedParams).toString();
+      const response = await fetch(`${BASE_API_URL}/activation/all?${queryString}&limit=10000`);
+
+      if (!response.ok) throw new Error('Erreur lors de la récupération des données');
+
+      const result = await response.json();
+
+      if (result?.data && Array.isArray(result.data)) {
+        return result.data;
+      } else {
+        throw new Error('Format de données invalide');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      return [];
+    }
+  };
+
+
+  const [, setSelectedActivations] = useState([]);
 
   const fetchActivations = useCallback(async () => {
     try {
@@ -139,11 +168,11 @@ const [selectedActivations, setSelectedActivations] = useState([]);
             onPageChange={handlePageChange}
             onActivationClick={handleActivationClick}
             setSelectedActivations={setSelectedActivations}
+            onExportRequest={handleExport}
 
           />
         </Suspense>
 
-        {/* Modal pour afficher les détails */}
         <Suspense fallback={<div>Chargement de la modal...</div>}>
           <Modal isOpen={isModalOpen} onClose={closeModal}>
             <ActivationDetails activation={selectedActivation} />

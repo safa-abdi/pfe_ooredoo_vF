@@ -1,16 +1,20 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import useUserData from "../hooks/useUserData";
 import Navbar from "../navbar/Navbar";
 import Sidebar from "../navbar/Sidebar";
+import Complaints from "./Complaints";
+import Resiliations from "./Resiliations";
+
 import "./task.css";
-import { 
-  FiChevronRight, 
-  FiCalendar, 
-  FiPhone, 
-  FiMapPin, 
-  FiTool, 
-  FiClock, 
+import {
+  FiChevronRight,
+  FiCalendar,
+  FiPhone,
+  FiMapPin,
+  FiTool,
+  FiClock,
   FiInfo,
   FiSearch,
   FiFilter,
@@ -56,10 +60,22 @@ const TaskPage = () => {
   const [filters, setFilters] = useState({
     status: "",
     gouvernorat: "",
+    crm_case: "",
+    MSISDN: "",
     startDate: "",
     endDate: "",
     search: ""
   });
+  const [complaintsData, setComplaintsData] = useState({
+  data: [],
+  total: 0,
+  stats: {
+    total: 0,
+    terminé: 0,
+    enCours: 0,
+    abandonné: 0
+  }
+});
   const [selectedTask, setSelectedTask] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showMap, setShowMap] = useState(false);
@@ -68,6 +84,19 @@ const TaskPage = () => {
   const [showTechnicianSelect, setShowTechnicianSelect] = useState(false);
   const [selectedGovernorate, setSelectedGovernorate] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (filters.search !== "") {
+        fetchData(false);
+      } else if (filters.search === "" && (filters.status || filters.gouvernorat || filters.startDate || filters.endDate)) {
+        fetchData(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [filters.search, filters.status, filters.gouvernorat, filters.startDate, filters.endDate]);
+
   useEffect(() => {
     if (user?.company?.id) {
       fetchData();
@@ -75,90 +104,80 @@ const TaskPage = () => {
     }
   }, [user, pagination.page, filters, activeTab]);
 
-  const fetchData = async () => {
+  const fetchData = async (showLoader = true) => {
     try {
-      setLoading(true);
-      
-      if (activeTab === TABS.ACTIVATIONS) {
-        await fetchActivations();
-      } else if (activeTab === TABS.COMPLAINTS) {
-        setComplaints([]);
-      } else if (activeTab === TABS.TERMINATIONS) {
-        setTerminations([]);
-      }
-      
-    } catch (err) {
-      setError("Erreur lors du chargement des données");
-      console.error(err);
+      if (showLoader) setLoading(true);
+
+      const params = {
+        page: pagination.page,
+        limit: pagination.limit,
+        ...(filters.status && { STATUT: filters.status }),
+        ...(filters.gouvernorat && { gouvernorat: filters.gouvernorat }),
+        ...(filters.startDate && { DATE_AFFECTATION_STT: filters.startDate }),
+        ...(filters.endDate && { DATE_PRISE_RDV: filters.endDate }),
+        ...(filters.search && { searchTerm: filters.search.trim() })
+      };
+
+      const response = await axios.get(`http://localhost:3000/activation/company/${user.company.id}`, { params });
+
+      setActivations(response.data.data);
+      setPagination({
+        ...pagination,
+        total: response.data.total,
+      });
+    } catch (error) {
+      setError("Erreur lors de la récupération des données");
+      console.error(error);
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
   };
 
-  const fetchActivations = async () => {
-    const response = await axios.get(
-      `http://localhost:3000/activation/company/${user.company.id}`,
-      {
-        params: {
-          page: pagination.page,
-          limit: pagination.limit,
-          status: filters.status,
-          gouvernorat: filters.gouvernorat,
-          startDate: filters.startDate,
-          endDate: filters.endDate,
-          search: filters.search
-        },
+  const fetchTechnicians = async () => {
+    try {
+      const response = await axios.get(
+        `http://localhost:3000/branches/${user.company.id}/technicians-by-gov`
+      );
+      if (response.data && typeof response.data === 'object') {
+        setTechnicians(response.data);
+      } else {
+        console.error("Structure de réponse inattendue:", response);
+        setTechnicians({});
       }
-    );
-
-    setActivations(response.data.data);
-    setPagination({
-      ...pagination,
-      total: response.data.total,
-    });
-  };
-
-const fetchTechnicians = async () => {
-  try {
-    const response = await axios.get(
-      `http://localhost:3000/branches/${user.company.id}/technicians-by-gov`
-    );
-    if (response.data && typeof response.data === 'object') {
-      setTechnicians(response.data);
-    } else {
-      console.error("Structure de réponse inattendue:", response);
+    } catch (err) {
+      console.error("Error fetching technicians:", err);
       setTechnicians({});
     }
-  } catch (err) {
-    console.error("Error fetching technicians:", err);
-    setTechnicians({});
-  }
-};
+  };
 
-const fetchTechnicianStatusCounts = async (governorate, sttId) => {
+  const fetchTechnicianStatusCounts = async (governorate, sttId) => {
   try {
-    const techniciansForGov = technicians[governorate] || [];
-    
-    if (techniciansForGov.length === 0) {
+    const govKey = governorate?.toLowerCase() || "";
+
+    const techniciansForGov = technicians[govKey] || [];
+
+    console.log("technicians", technicians);
+    console.log("govKey", govKey);
+    console.log("techniciansForGov", techniciansForGov);
+
+    if (!techniciansForGov || techniciansForGov.length === 0) {
       console.warn(`Aucun technicien trouvé pour le gouvernorat: ${governorate}`);
       setTechnicianStatusCounts({});
       return;
     }
 
     const counts = {};
-    
+
     await Promise.all(
       techniciansForGov.map(async (tech) => {
         try {
           const response = await axios.get(`http://localhost:3000/activation/count-by-status-tech`, {
             params: {
               technicianId: tech.id,
-              Gouv: governorate,
-              ...(sttId && { sttId }),
+              Gouv: govKey,
+              sttId:user.company.id,
             }
           });
-
-          // Calculer le total des activations pour ce technicien
           if (response.data && Array.isArray(response.data)) {
             const totalCount = response.data.reduce((sum, item) => sum + item.count, 0);
             counts[tech.id] = totalCount;
@@ -181,11 +200,16 @@ const fetchTechnicianStatusCounts = async (governorate, sttId) => {
   }
 };
 const fetchTechniciansForGovernorate = (governorate) => {
-  const techniciansForGov = technicians[governorate] || [];
-  setTechnicians({ [governorate]: techniciansForGov });
-  
+  const normalizedGov = governorate.toLowerCase();
+  const techniciansForGov = technicians[normalizedGov] || [];
+  const newTechnicians = {};
+  newTechnicians[normalizedGov] = techniciansForGov;
+  setTechnicians(prev => ({
+    ...prev,
+    ...newTechnicians,
+  }));
   const sttId = selectedActivations.length > 0 ? selectedActivations[0].sttId : null;
-  fetchTechnicianStatusCounts(governorate, sttId);
+  fetchTechnicianStatusCounts(normalizedGov, sttId);
 };
 
   const handleTabChange = (tab) => {
@@ -210,8 +234,8 @@ const fetchTechniciansForGovernorate = (governorate) => {
       ...filters,
       search: e.target.value
     });
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
-
   const handlePageChange = (newPage) => {
     setPagination({
       ...pagination,
@@ -260,7 +284,7 @@ const fetchTechniciansForGovernorate = (governorate) => {
 
   const handleAssignTechnician = async () => {
     if (selectedActivations.length === 0 || !selectedTechnician) return;
-    
+
     const params = {
       activationIds: selectedActivations.map(activation => activation.crm_case),
       technicianId: selectedTechnician.id,
@@ -296,16 +320,16 @@ const fetchTechniciansForGovernorate = (governorate) => {
       <div className="activations-actions">
         {selectedActivations.length > 0 && (
           <>
-            <button 
+            <button
               className="show-map-btn"
               onClick={() => setShowMap(!showMap)}
             >
               <FiMap /> {showMap ? 'Masquer la carte' : 'Afficher sur la carte'}
             </button>
-            <button 
+            <button
               className="assign-btn"
               onClick={() => {
-                const governorateToUse = selectedActivations[0]?.Gouvernorat || "";
+              const governorateToUse = selectedActivations[0]?.Gouvernorat?.toLowerCase() || "";
                 if (governorateToUse) {
                   setSelectedGovernorate(governorateToUse);
                   fetchTechniciansForGovernorate(governorateToUse);
@@ -320,7 +344,7 @@ const fetchTechniciansForGovernorate = (governorate) => {
             <span className="selected-count">
               {selectedActivations.length} sélectionné(s)
             </span>
-            <button 
+            <button
               className="clear-selection"
               onClick={() => setSelectedActivations([])}
             >
@@ -332,9 +356,9 @@ const fetchTechniciansForGovernorate = (governorate) => {
 
       {showMap && selectedActivations.length > 0 && (
         <div className="map-container">
-          <MapContainer 
-            center={[34, 9]} 
-            zoom={6} 
+          <MapContainer
+            center={[34, 9]}
+            zoom={6}
             style={{ height: '400px', width: '100%' }}
           >
             <TileLayer
@@ -343,11 +367,11 @@ const fetchTechniciansForGovernorate = (governorate) => {
             />
             {selectedActivations.map(activation => (
               activation.LATITUDE_SITE && activation.LONGITUDE_SITE && (
-                <Marker 
-                  key={activation.crm_case} 
+                <Marker
+                  key={activation.crm_case}
                   position={[parseFloat(activation.LATITUDE_SITE), parseFloat(activation.LONGITUDE_SITE)]}
                   eventHandlers={{
-                    click: () => toggleSelectionOnMapClick(activation), // gestion de clic sur le marqueur
+                    click: () => toggleSelectionOnMapClick(activation),
                   }}
                 >
                   <Popup>
@@ -372,12 +396,12 @@ const fetchTechniciansForGovernorate = (governorate) => {
                 ×
               </button>
             </div>
-            
+
             <div className="selection-info">
               <p><strong>{selectedActivations.length}</strong> activation(s) sélectionnée(s)</p>
               <p>Gouvernorat: <strong>{selectedGovernorate || "Non spécifié"}</strong></p>
             </div>
-            
+
             <div className="technician-filters">
               <label>Gouvernorat:</label>
               <select
@@ -393,20 +417,20 @@ const fetchTechniciansForGovernorate = (governorate) => {
                 ))}
               </select>
             </div>
-            
+
             <div className="technicians-list">
-            {renderTechnicianList()} 
+              {renderTechnicianList()}
 
             </div>
-            
+
             <div className="technician-actions">
-              <button 
+              <button
                 className="cancel-btn"
                 onClick={() => setShowTechnicianSelect(false)}
               >
                 Annuler
               </button>
-              <button 
+              <button
                 className="confirm-btn"
                 onClick={handleAssignTechnician}
                 disabled={!selectedTechnician}
@@ -420,8 +444,8 @@ const fetchTechniciansForGovernorate = (governorate) => {
 
       <div className="activations-list">
         {activations.map((activation) => (
-          <div 
-            key={activation.crm_case} 
+          <div
+            key={activation.crm_case}
             className={`activation-card ${selectedActivations.some(a => a.crm_case === activation.crm_case) ? 'selected' : ''}`}
             onClick={() => handleRowClick(activation)}
           >
@@ -435,7 +459,7 @@ const fetchTechniciansForGovernorate = (governorate) => {
                 />
               )}
             </div>
-            
+
             <div className="activation-main">
               <span className="crm-case">#{activation.crm_case}</span>
               <h3>{activation.CLIENT}</h3>
@@ -449,7 +473,7 @@ const fetchTechniciansForGovernorate = (governorate) => {
                 </span>
               </div>
             </div>
-            
+
             <div className="activation-status">
               <span className={`status-badge ${activation.STATUT.toLowerCase().replace(" ", "-")}`}>
                 {activation.STATUT}
@@ -458,7 +482,7 @@ const fetchTechniciansForGovernorate = (governorate) => {
                 <FiClock /> {activation.SLA_STT?.toFixed(2) || 'N/A'}h
               </span>
             </div>
-            
+
             <FiChevronRight className="chevron-icon" />
           </div>
         ))}
@@ -487,16 +511,19 @@ const fetchTechniciansForGovernorate = (governorate) => {
   );
 
   const renderComplaints = () => (
-    <div className="no-results">
-      <FiInfo /> Aucune plainte trouvée (fonctionnalité à venir)
-    </div>
+    <Complaints 
+    companyId={user?.company?.id} 
+    filters={filters}
+    />
   );
 
-  const renderTerminations = () => (
-    <div className="no-results">
-      <FiInfo /> Aucune résiliation trouvée (fonctionnalité à venir)
-    </div>
+    const renderTerminations = () => (
+    <Resiliations
+    companyId={user?.company?.id} 
+    filters={filters}
+    />
   );
+
 
   const renderDetails = () => {
     if (!selectedTask) return null;
@@ -513,7 +540,7 @@ const fetchTechniciansForGovernorate = (governorate) => {
               {selectedTask.STATUT}
             </span>
           </div>
-          
+
           <div className="details-grid">
             <div className="details-section">
               <h3><FiInfo /> Informations client</h3>
@@ -523,7 +550,7 @@ const fetchTechniciansForGovernorate = (governorate) => {
               <p><strong>Offre:</strong> {selectedTask.offre}</p>
               <p><strong>Pack:</strong> {selectedTask.DES_PACK}</p>
             </div>
-            
+
             <div className="details-section">
               <h3><FiMapPin /> Localisation</h3>
               <p><strong>Gouvernorat:</strong> {selectedTask.Gouvernorat}</p>
@@ -532,7 +559,7 @@ const fetchTechniciansForGovernorate = (governorate) => {
               <p><strong>Agence:</strong> {selectedTask.branch?.name || '-'}</p>
               <p><strong>STT:</strong> {selectedTask.NAME_STT}</p>
             </div>
-            
+
             <div className="details-section">
               <h3><FiTool /> Intervention</h3>
               <p><strong>Réponse travaux:</strong> {selectedTask.REP_TRAVAUX_STT}</p>
@@ -540,7 +567,7 @@ const fetchTechniciansForGovernorate = (governorate) => {
               <p><strong>Réponse RDV:</strong> {selectedTask.REP_RDV}</p>
               <p><strong>Commentaire RDV:</strong> {selectedTask.CMT_RDV}</p>
             </div>
-            
+
             <div className="details-section">
               <h3><FiCalendar /> Dates clés</h3>
               <p><strong>Création CRM:</strong> {formatDateTime(selectedTask.DATE_CREATION_CRM)}</p>
@@ -549,7 +576,7 @@ const fetchTechniciansForGovernorate = (governorate) => {
               <p><strong>Prise RDV:</strong> {formatDateTime(selectedTask.DATE_PRISE_RDV)}</p>
               <p><strong>Fin travaux:</strong> {formatDateTime(selectedTask.DATE_FIN_TRV)}</p>
             </div>
-            
+
             <div className="details-section">
               <h3><FiClock /> Indicateurs</h3>
               <p><strong>SLA STT:</strong> {selectedTask.SLA_STT?.toFixed(2) || '-'}h</p>
@@ -567,8 +594,8 @@ const fetchTechniciansForGovernorate = (governorate) => {
   const renderTechnicianList = () => (
     selectedGovernorate && technicians[selectedGovernorate]?.length > 0 ? (
       technicians[selectedGovernorate].map(tech => (
-        <div 
-          key={tech.id} 
+        <div
+          key={tech.id}
           className={`technician-card ${selectedTechnician?.id === tech.id ? 'selected' : ''}`}
           onClick={() => setSelectedTechnician(tech)}
         >
@@ -578,7 +605,7 @@ const fetchTechniciansForGovernorate = (governorate) => {
             <p className={`availability ${tech.disponibilité ? 'available' : 'unavailable'}`}>
               {tech.disponibilité ? 'Disponible' : 'Non disponible'}
             </p>
-            <p><strong>Activations en cours:</strong> {technicianStatusCounts[tech.id] || 0}</p> {/* Affichez ici le nombre */}
+            <p><strong>Activations en cours:</strong> {technicianStatusCounts[tech.id] || 0}</p>
           </div>
           {selectedTechnician?.id === tech.id && <FiCheck className="check-icon" />}
         </div>
@@ -597,21 +624,21 @@ const fetchTechniciansForGovernorate = (governorate) => {
       <div className="main-content4">
         <div className="task-container">
           <div className="task-header">
-            
+
             <div className="tabs">
-              <button 
+              <button
                 className={`tab ${activeTab === TABS.ACTIVATIONS ? 'active' : ''}`}
                 onClick={() => handleTabChange(TABS.ACTIVATIONS)}
               >
                 Activations
               </button>
-              <button 
+              <button
                 className={`tab ${activeTab === TABS.COMPLAINTS ? 'active' : ''}`}
                 onClick={() => handleTabChange(TABS.COMPLAINTS)}
               >
                 Plaintes
               </button>
-              <button 
+              <button
                 className={`tab ${activeTab === TABS.TERMINATIONS ? 'active' : ''}`}
                 onClick={() => handleTabChange(TABS.TERMINATIONS)}
               >
@@ -623,8 +650,8 @@ const fetchTechniciansForGovernorate = (governorate) => {
               <div className="summary-card total">
                 <span>Total</span>
                 <strong>
-                  {activeTab === TABS.ACTIVATIONS ? pagination.total : 
-                   activeTab === TABS.COMPLAINTS ? 0 : 0}
+                  {activeTab === TABS.ACTIVATIONS ? pagination.total :
+                    activeTab === TABS.COMPLAINTS ? 0 : 0}
                 </strong>
               </div>
               <div className="summary-card terminé">
@@ -641,8 +668,8 @@ const fetchTechniciansForGovernorate = (governorate) => {
               </div>
               <div className="summary-card abandonné">
                 <span>
-                  {activeTab === TABS.ACTIVATIONS ? 'Abandonnées' : 
-                   activeTab === TABS.COMPLAINTS ? 'Critiques' : 'Annulées'}
+                  {activeTab === TABS.ACTIVATIONS ? 'Abandonnées' :
+                    activeTab === TABS.COMPLAINTS ? 'Critiques' : 'Annulées'}
                 </span>
                 <strong>
                   {activeTab === TABS.ACTIVATIONS ? activations.filter(a => a.STATUT === 'Abandonné').length : 0}
@@ -650,35 +677,32 @@ const fetchTechniciansForGovernorate = (governorate) => {
               </div>
             </div>
           </div>
-          
+
           <div className="filters-container4">
-          <div 
-    className={`filter-toggle ${showFilters ? 'active' : ''}`}
-    onClick={() => setShowFilters(!showFilters)}
-  >
-    <FiFilter />
-    <span>Filtres</span>
-    <FiChevronRight className={`chevron ${showFilters ? 'rotate' : ''}`} />
-  </div>   
-  </div>
-  <div className={`filter-content ${showFilters ? 'expanded' : ''}`}>
+            <div
+              className={`filter-toggle ${showFilters ? 'active' : ''}`}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <FiFilter />
+              <span>Filtres</span>
+              <FiChevronRight className={`chevron ${showFilters ? 'rotate' : ''}`} />
+            </div>
+          </div>
+          <div className={`filter-content ${showFilters ? 'expanded' : ''}`}>
 
             <div className="search-bar4">
-              <FiSearch className="search-icon4" />
               <input
                 type="text"
-                placeholder={
-                  activeTab === TABS.ACTIVATIONS ? "Rechercher par client, MSISDN..." :
-                  activeTab === TABS.COMPLAINTS ? "Rechercher par client, référence..." :
-                  "Rechercher par client, contrat..."
-                }
+                placeholder="Rechercher par numéro CRM, client ou téléphone..."
                 value={filters.search}
                 onChange={handleSearchChange}
+                onKeyPress={(e) => e.key === 'Enter' && fetchData()}
               />
+              <button className="btnRech" onClick={fetchData}><FiSearch className="search-icon4" /></button>
             </div>
-            
+
             <div className="filter-group4">
-              {activeTab === TABS.ACTIVATIONS && (
+              {(activeTab === TABS.ACTIVATIONS || activeTab === TABS.TERMINATIONS || activeTab === TABS.COMPLAINTS) && (
                 <>
                   <div className="filter-item4">
                     <label><FiFilter /> Statut</label>
@@ -697,75 +721,39 @@ const fetchTechniciansForGovernorate = (governorate) => {
 
                   <div className="filter-item4">
                     <label><FiMapPin /> Gouvernorat</label>
-                    <select
-                      name="gouvernorat"
-                      value={filters.gouvernorat}
-                      onChange={handleFilterChange}
-                    >
-                      <option value="">Tous les gouvernorats</option>
-                      <option value="Ariana">Ariana</option>
-                      <option value="Beja">Béja</option>
-                      <option value="Ben Arous">Ben Arous</option>
-                      <option value="Bizerte">Bizerte</option>
-                      <option value="Gabes">Gabès</option>
-                      <option value="Gafsa">Gafsa</option>
-                      <option value="Jendouba">Jendouba</option>
-                      <option value="Kairouan">Kairouan</option>
-                      <option value="Kasserine">Kasserine</option>
-                      <option value="Kebili">Kébili</option>
-                      <option value="Kef">Le Kef</option>
-                      <option value="Mahdia">Mahdia</option>
-                      <option value="Manouba">La Manouba</option>
-                      <option value="Medenine">Médenine</option>
-                      <option value="Monastir">Monastir</option>
-                      <option value="Nabeul">Nabeul</option>
-                      <option value="Sfax">Sfax</option>
-                      <option value="Sidi Bouzid">Sidi Bouzid</option>
-                      <option value="Siliana">Siliana</option>
-                      <option value="Sousse">Sousse</option>
-                      <option value="Tataouine">Tataouine</option>
-                      <option value="Tozeur">Tozeur</option>
-                      <option value="Tunis">Tunis</option>
-                      <option value="Zaghouan">Zaghouan</option>
-                    </select>
+                   <select
+  name="gouvernorat"
+  value={filters.gouvernorat}
+  onChange={handleFilterChange}
+>
+  <option value="">Tous les gouvernorats</option>
+  <option value="ariana">Ariana</option>
+  <option value="beja">Béja</option>
+  <option value="ben arous">Ben Arous</option>
+  <option value="bizerte">Bizerte</option>
+  <option value="gabes">Gabès</option>
+  <option value="gafsa">Gafsa</option>
+  <option value="jendouba">Jendouba</option>
+  <option value="kairouan">Kairouan</option>
+  <option value="kasserine">Kasserine</option>
+  <option value="kebili">Kébili</option>
+  <option value="kef">Le Kef</option>
+  <option value="mahdia">Mahdia</option>
+  <option value="mannouba">La Manouba</option>
+  <option value="medenine">Médenine</option>
+  <option value="monastir">Monastir</option>
+  <option value="nabeul">Nabeul</option>
+  <option value="sfax">Sfax</option>
+  <option value="sidi bouzid">Sidi Bouzid</option>
+  <option value="siliana">Siliana</option>
+  <option value="sousse">Sousse</option>
+  <option value="tataouine">Tataouine</option>
+  <option value="tozeur">Tozeur</option>
+  <option value="tunis">Tunis</option>
+  <option value="zaghouan">Zaghouan</option>
+</select>
                   </div>
                 </>
-              )}
-
-              {activeTab === TABS.COMPLAINTS && (
-                <div className="filter-item4">
-                  <label><FiAlertTriangle /> Raison</label>
-                  <select
-                    name="severity"
-                    value={filters.severity}
-                    onChange={handleFilterChange}
-                    disabled
-                  >
-                    <option value="">Toutes</option>
-                    <option value="low">Faible</option>
-                    <option value="medium">Moyenne</option>
-                    <option value="high">Haute</option>
-                    <option value="critical">Critique</option>
-                  </select>
-                </div>
-              )}
-
-              {activeTab === TABS.TERMINATIONS && (
-                <div className="filter-item4">
-                  <label><FiXCircle /> Raison</label>
-                  <select
-                    name="reason"
-                    value={filters.reason}
-                    onChange={handleFilterChange}
-                    disabled
-                  >
-                    <option value="">Toutes</option>
-                    <option value="price">Prix</option>
-                    <option value="service">Service</option>
-                    <option value="relocation">Déménagement</option>
-                    <option value="other">Autre</option>
-                  </select>
-                </div>
               )}
 
               <div className="filter-item4">
@@ -795,11 +783,11 @@ const fetchTechniciansForGovernorate = (governorate) => {
           </div>
 
           {loading ? (
-            <div className="loading-spinner"></div>
-          ) : error ? (
-            <div className="error-message">
-              <FiInfo /> {error}
+            <div className="spinner-container">
+              <div className="spinner-ring"></div>
             </div>
+          ) : error ? (
+            <div className="error-message"><FiInfo /> {error}</div>
           ) : (
             <>
               {activeTab === TABS.ACTIVATIONS && renderActivations()}
@@ -811,8 +799,8 @@ const fetchTechniciansForGovernorate = (governorate) => {
       </div>
 
       {showDetails && selectedTask && (
-        <div className="modal-overlay" onClick={() => setShowDetails(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlaySTTP" onClick={() => setShowDetails(false)}>
+          <div className="modal-contentSTTP" onClick={(e) => e.stopPropagation()}>
             <button className="close-modal" onClick={() => setShowDetails(false)}>
               ×
             </button>

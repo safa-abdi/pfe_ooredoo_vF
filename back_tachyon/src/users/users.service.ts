@@ -271,7 +271,7 @@ export class UsersService {
 
     console.log('User object from database:', user);
 
-    return user; // Return the full user object, including 'mdp'
+    return user;
   }
   async findOneByTel(num_tel: string): Promise<User> {
     const user = await this.usersRepository.findOne({
@@ -367,12 +367,7 @@ export class UsersService {
       );
     }
   }
-  // async getUsersByCompanyId(companyId: number): Promise<User[]> {
-  //   return this.usersRepository.find({
-  //     where: { company_id: companyId },
-  //     relations: ['role', 'company'],
-  //   });
-  // }
+
   async getUsersByCompanyId(
     companyId: number,
     page = 1,

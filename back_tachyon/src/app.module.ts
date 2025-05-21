@@ -24,12 +24,18 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { join } from 'path';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { extractModule } from './extract_from_image/extract.module';
+import { ExportModule } from './history/export.module';
+import { HistoryModule } from './history/history.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { CronService } from './cron/cron.service';
+import { CronModule } from './cron/cron.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
-      isGlobal: true, // Make the configuration global
-      envFilePath: '.env', // Specify the path to your .env file
+      isGlobal: true,
+      envFilePath: '.env',
     }),
     CacheModule.register({
       store: redisStore,
@@ -87,6 +93,10 @@ import { extractModule } from './extract_from_image/extract.module';
     BranchesModule,
     MulterModule.register(),
     extractModule,
+    ExportModule,
+    HistoryModule,
+    CronModule,
   ],
+  providers: [CronService],
 })
 export class AppModule {}

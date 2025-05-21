@@ -5,6 +5,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Put,
   Query,
@@ -20,6 +21,89 @@ import { PlainteFrozenDto } from './dto/plaintefrozen.dto';
 @Controller('plainte')
 export class PlainteController {
   constructor(private readonly plaintesService: PlainteService) {}
+
+  @Get('paginated')
+  async getPaginatedStats(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 50,
+  ) {
+    return this.plaintesService.getPaginatedStats(page, limit);
+  }
+  @Get('company/:companyId')
+  async getByCompany(
+    @Param('companyId', ParseIntPipe) companyId: number,
+    @Query()
+    query: {
+      searchTerm?: string;
+      page?: number;
+      limit?: number;
+      REP_TRAVAUX_STT?: string;
+      gouvernorat?: string;
+      delegation?: string;
+      DATE_AFFECTATION_STT?: string;
+      DES_PACK?: string;
+      offre?: string;
+      REP_RDV?: string;
+      DATE_PRISE_RDV?: string;
+      CMT_RDV?: string;
+      Description?: number;
+      STATUT?: string;
+    },
+  ) {
+    const {
+      searchTerm,
+      page = 1,
+      limit = 50,
+      REP_TRAVAUX_STT,
+      gouvernorat,
+      delegation,
+      DATE_AFFECTATION_STT,
+      DES_PACK,
+      offre,
+      REP_RDV,
+      DATE_PRISE_RDV,
+      CMT_RDV,
+      Description,
+      STATUT,
+    } = query;
+
+    return this.plaintesService.findPlaintesByCompany(
+      companyId,
+      searchTerm,
+      page,
+      limit,
+      REP_TRAVAUX_STT,
+      gouvernorat,
+      delegation,
+      DATE_AFFECTATION_STT,
+      DES_PACK,
+      offre,
+      REP_RDV,
+      DATE_PRISE_RDV,
+      CMT_RDV,
+      Description,
+      STATUT,
+    );
+  }
+  @Get('count-by-status-tech')
+  async getCountByStatus(
+    @Query('sttId') sttId: number,
+    @Query('technicianId') technicianId: number,
+    @Query('Gouv') Gouv: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+
+    return this.plaintesService.getCountOfPlaintesBySttId_technicien(
+      sttId,
+      technicianId,
+      Gouv,
+      start,
+      end,
+    );
+  }
 
   @Get('inProgress')
   async findAllInProgress(
@@ -82,6 +166,16 @@ export class PlainteController {
       limit,
       search,
     );
+  }
+
+  @Get('recurring')
+  async getRecurringComplaints(): Promise<Plainte[]> {
+    return this.plaintesService.findRecurringComplaintsSingleQuery();
+  }
+
+  @Get('sla/stt')
+  async getAverageSLABySTT(@Query('period') period: string) {
+    return this.plaintesService.getAverageSLABySTT(period);
   }
 
   @Get('valid')

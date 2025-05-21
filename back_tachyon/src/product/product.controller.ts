@@ -40,4 +40,8 @@ export class ProductsController {
   async delete(@Param('id') id: number): Promise<void> {
     return this.productsService.delete(id);
   }
+  @Put('/archiver/:id')
+  async archive(@Param('id') id: number): Promise<void> {
+    await this.productsService.archive(id);
+  }
 }

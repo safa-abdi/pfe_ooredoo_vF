@@ -108,6 +108,9 @@ export class Plainte {
   @Index()
   DATE_CLOTURE_ZM: Date;
 
+  @Column({ type: 'double', default: 0 })
+  SLARDV_Critique: number;
+
   @ManyToOne(() => CompanyDelegation, { nullable: true })
   @JoinColumn({ name: 'company_delegation_id' })
   companyDelegation: CompanyDelegation | null;

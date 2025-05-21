@@ -8,6 +8,9 @@ import { Delegation } from './entities/Delegation.entity';
 import { Gouv } from './entities/gouv.entity';
 import { CompanyDelegation } from './entities/CompanyDelegation';
 import { CompanyDelegationModule } from './company-delegation.module';
+import { Activation } from 'src/activation/entities/activation.entity';
+import { Plainte } from 'src/plaintes/entities/plaintes.entity';
+import { Resiliation } from 'src/resiliation/entities/resiliation.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -16,6 +19,9 @@ import { CompanyDelegationModule } from './company-delegation.module';
       Delegation,
       Gouv,
       CompanyDelegation,
+      Activation,
+      Plainte,
+      Resiliation,
     ]),
     CompanyDelegationModule,
   ],

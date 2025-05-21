@@ -25,18 +25,6 @@ export class CompaniesService {
     });
   }
 
-  // async findAll_Unblocked(): Promise<Company[]> {
-  //   return await this.companyRepository.find({
-  //     relations: {
-  //       users: true,
-  //       branches: {
-  //         delegations: true,
-  //       },
-  //     },
-  //     where: [{ blocked: false }, { branches: { blocked: false } }],
-  //   });
-  // }
-
   async findAll_Unblocked(): Promise<Company[]> {
     return await this.companyRepository.find({
       relations: {

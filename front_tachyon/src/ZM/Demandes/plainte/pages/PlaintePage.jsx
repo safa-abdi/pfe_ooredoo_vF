@@ -19,7 +19,7 @@ const PlaintesPage = () => {
   const [selectedPlainte, setSelectedPlainte] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filters, setFilters] = useState({
-    STATUT: '',
+    STATUT: 'En cours',
     gouvernorat: '',
     delegation: '',
     DATE_CREATION: '',
@@ -27,6 +27,8 @@ const PlaintesPage = () => {
     SOURCE_PLAINTE: '',
     PRIORITE: '',
     CRM_CASE: '',
+    REP_TRAVAUX_STT: 'non_affecté_stt',
+
   });
   const [lastId, setLastId] = useState(null);
   const [viewWithProblem, setViewWithProblem] = useState(false);

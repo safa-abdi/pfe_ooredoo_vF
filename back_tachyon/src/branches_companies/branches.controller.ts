@@ -81,4 +81,10 @@ export class BranchesController {
       id,
     );
   }
+  @Get('moyenne-prise-rdv/:companyId')
+  async getMoyennePriseRDVParTechnicien(
+    @Param('companyId', ParseIntPipe) companyId: number,
+  ) {
+    return this.branchesService.getTempsMoyenParTechnicien(companyId);
+  }
 }

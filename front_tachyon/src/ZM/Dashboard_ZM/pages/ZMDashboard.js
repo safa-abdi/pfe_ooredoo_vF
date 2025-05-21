@@ -8,6 +8,8 @@ import GouvDashboardStats from '../components/GouvDashboardStats';
 import './ZMDashboard.css';
 import SearchBar2 from '../components/SearchBar2';
 import { debounce } from 'lodash';
+import CriticalCasesComponent from '../components/CriticalCasesComponent';
+
 import { BASE_API_URL } from '../../../config';
 import StatusCardsComponent from '../components/StatusCardsComponent';
 const ZMDashboard = () => {
@@ -25,7 +27,6 @@ const ZMDashboard = () => {
   const [dataType, setDataType] = useState('both');
   const [showFilter, setShowFilter] = useState(true);
   const [activeTab, setActiveTab] = useState('map');
-  const [sttData, setSttData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
@@ -38,150 +39,206 @@ const ZMDashboard = () => {
   const [sttPlaintes, setSttPlaintes] = useState([]);
   const [filteredByStatus, setFilteredByStatus] = useState(null);
   const [showStatusPopup, setShowStatusPopup] = useState(false);
+  const [showCriticalCases, setShowCriticalCases] = useState(false);
   const [isLoadingStatusData, setIsLoadingStatusData] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [criticalCases, setCriticalCases] = useState({
+    activation: [],
+    plainte: [],
+    resiliation: []
+  });
+
   const [mapDisplayData, setMapDisplayData] = useState({
-  activations: [],
-  plaintes: [],
-  resiliations: []
-});
-const cleanGouvernoratName = (name) => {
-  if (!name) return '';
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/^gouvernorat\s+/i, '')
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-};
-const handleGouvernoratSelect = async (selectedGouvernorat) => {
-  setGouvernorat(selectedGouvernorat);
-  if (selectedGouvernorat && selectedGouvernorat !== "Non trouvé") {
-    try {
-      setIsLoadingStatusData(true);
-        const cleanedGouvernorat = cleanGouvernoratName(selectedGouvernorat);
-        setGouvernorat(cleanedGouvernorat);
-      console.log("gouvernorat selectionnée",cleanedGouvernorat)
-      const endpoints = ['frozen', 'non_affected', 'En_rdv', 'En_travaux'];
-      const requests = [];
-      endpoints.forEach(endpoint => {
-        requests.push(
-          fetch(`${BASE_API_URL}/activation/${endpoint}?gouvernorat=${encodeURIComponent(cleanedGouvernorat)}`)
-            .then(res => res.json())
-            .then(data => ({
-              type: 'activations',
-              endpoint,
-              count: data.count,
-              data: data.data || []
-            }))
-        );
-        requests.push(
-          fetch(`${BASE_API_URL}/plainte/${endpoint}?gouvernorat=${encodeURIComponent(cleanedGouvernorat)}`)
-            .then(res => res.json())
-            .then(data => ({
-              type: 'plaintes',
-              endpoint,
-              count: data.count,
-              data: data.data || []
-            }))
-        );
-      });
-
-      const results = await Promise.all(requests);
-      const newCounts = { activations: {}, plaintes: {} };
-      const fullData = { 
-        activations: { frozen: [], non_affected: [], En_rdv: [], En_travaux: [] },
-        plaintes: { frozen: [], non_affected: [], En_rdv: [], En_travaux: [] }
-      };
-
-      results.forEach(result => {
-        newCounts[result.type][result.endpoint] = result.count;
-        fullData[result.type][result.endpoint] = result.data;
-      });
-
-      setStatusCounts(newCounts);
-      setStatusFullData(fullData);
-
-      const filteredActivations = dataType !== 'plainte' 
-        ? activations.filter(act => act.Gouvernorat === selectedGouvernorat)
-        : [];
-      const filteredPlaintes = dataType !== 'activation' 
-        ? plaintes.filter(plainte => plainte.Gouvernorat === selectedGouvernorat)
-        : [];
-
-      setMapDisplayData({
-        activations: filteredActivations,
-        plaintes: filteredPlaintes,
-        resiliations: []
-      });
-
-      console.log("Données filtrées par gouvernorat :", {
-        gouvernorat: selectedGouvernorat,
-        activations: filteredActivations,
-        plaintes: filteredPlaintes
-      });
-
-    } catch (error) {
-      console.error("Erreur lors de la récupération des données par gouvernorat:", error);
-    } finally {
-      setIsLoadingStatusData(false);
-    }
-  } else {
-    showDefaultMapData();
-  }
-};
-
-const showDefaultMapData = () => {
-  setMapDisplayData({
-    activations: dataType !== 'plainte' ? activations : [],
-    plaintes: dataType !== 'activation' ? plaintes : [],
+    activations: [],
+    plaintes: [],
     resiliations: []
   });
-};
-const calculateStatusCounts = (activations, plaintes) => {
-  const statusCounts = {
-    activations: {},
-    plaintes: {}
+  const [sttData, setSttData] = useState({
+    activation: null,
+    plainte: null,
+    resiliation: null
+  });
+  const handleExport = async (data) => {
+    try {
+      const response = await fetch('http://localhost:3000/export/demandes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ data }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de l\'exportation');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'demandes.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      console.error('Export failed:', error);
+    }
+  };
+useEffect(() => {
+    const fetchCriticalCases = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/test-cron/sla-critiques');
+        const data = await response.json();
+        
+        setCriticalCases({
+          activation: data.activations?.data || [],
+          plainte: data.plainte?.data || [],
+          resiliation: data.resiliation?.data || []
+        });
+      } catch (error) {
+        console.error("Error fetching critical cases:", error);
+      }
+    };
+
+    fetchCriticalCases();
+  }, []);
+  const cleanGouvernoratName = (name) => {
+    if (!name) return '';
+    return name
+      .trim()
+      .toLowerCase()
+      .replace(/^gouvernorat\s+/i, '')
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  };
+  const handleGouvernoratSelect = async (selectedGouvernorat) => {
+    setGouvernorat(selectedGouvernorat);
+    if (selectedGouvernorat && selectedGouvernorat !== "Non trouvé") {
+      try {
+        setIsLoadingStatusData(true);
+        const cleanedGouvernorat = cleanGouvernoratName(selectedGouvernorat);
+        setGouvernorat(cleanedGouvernorat);
+        console.log("gouvernorat selectionnée", cleanedGouvernorat)
+        const endpoints = ['frozen', 'non_affected', 'En_rdv', 'En_travaux'];
+        const requests = [];
+        endpoints.forEach(endpoint => {
+          requests.push(
+            fetch(`${BASE_API_URL}/activation/${endpoint}?gouvernorat=${encodeURIComponent(cleanedGouvernorat)}`)
+              .then(res => res.json())
+              .then(data => ({
+                type: 'activations',
+                endpoint,
+                count: data.count,
+                data: data.data || []
+              }))
+          );
+          requests.push(
+            fetch(`${BASE_API_URL}/plainte/${endpoint}?gouvernorat=${encodeURIComponent(cleanedGouvernorat)}`)
+              .then(res => res.json())
+              .then(data => ({
+                type: 'plaintes',
+                endpoint,
+                count: data.count,
+                data: data.data || []
+              }))
+          );
+        });
+
+        const results = await Promise.all(requests);
+        const newCounts = { activations: {}, plaintes: {} };
+        const fullData = {
+          activations: { frozen: [], non_affected: [], En_rdv: [], En_travaux: [] },
+          plaintes: { frozen: [], non_affected: [], En_rdv: [], En_travaux: [] }
+        };
+
+        results.forEach(result => {
+          newCounts[result.type][result.endpoint] = result.count;
+          fullData[result.type][result.endpoint] = result.data;
+        });
+
+        setStatusCounts(newCounts);
+        setStatusFullData(fullData);
+
+        const filteredActivations = dataType !== 'plainte'
+          ? activations.filter(act => act.Gouvernorat === selectedGouvernorat)
+          : [];
+        const filteredPlaintes = dataType !== 'activation'
+          ? plaintes.filter(plainte => plainte.Gouvernorat === selectedGouvernorat)
+          : [];
+
+        setMapDisplayData({
+          activations: filteredActivations,
+          plaintes: filteredPlaintes,
+          resiliations: []
+        });
+
+        console.log("Données filtrées par gouvernorat :", {
+          gouvernorat: selectedGouvernorat,
+          activations: filteredActivations,
+          plaintes: filteredPlaintes
+        });
+
+      } catch (error) {
+        console.error("Erreur lors de la récupération des données par gouvernorat:", error);
+      } finally {
+        setIsLoadingStatusData(false);
+      }
+    } else {
+      showDefaultMapData();
+    }
   };
 
-  activations.forEach(act => {
-    const status = act.STATUT || 'non_affected';
-    statusCounts.activations[status] = (statusCounts.activations[status] || 0) + 1;
-  });
+  const showDefaultMapData = () => {
+    setMapDisplayData({
+      activations: dataType !== 'plainte' ? activations : [],
+      plaintes: dataType !== 'activation' ? plaintes : [],
+      resiliations: []
+    });
+  };
+  const calculateStatusCounts = (activations, plaintes) => {
+    const statusCounts = {
+      activations: {},
+      plaintes: {}
+    };
 
-  // Compte les statuts de plaintes
-  plaintes.forEach(pl => {
-    const status = pl.STATUT || 'non_affected';
-    statusCounts.plaintes[status] = (statusCounts.plaintes[status] || 0) + 1;
-  });
+    activations.forEach(act => {
+      const status = act.STATUT || 'non_affected';
+      statusCounts.activations[status] = (statusCounts.activations[status] || 0) + 1;
+    });
 
-  return statusCounts;
-};
+    // Compte les statuts de plaintes
+    plaintes.forEach(pl => {
+      const status = pl.STATUT || 'non_affected';
+      statusCounts.plaintes[status] = (statusCounts.plaintes[status] || 0) + 1;
+    });
 
-useEffect(() => {
-  if (activations.length > 0 || plaintes.length > 0) {
-    showDefaultMapData();
-  }
-}, [activations, plaintes, dataType]);
+    return statusCounts;
+  };
+
+  useEffect(() => {
+    if (activations.length > 0 || plaintes.length > 0) {
+      showDefaultMapData();
+    }
+  }, [activations, plaintes, dataType]);
   const [statusCounts, setStatusCounts] = useState({
     activations: {},
     plaintes: {}
   });
   const getCurrentItems = (data) => {
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  return data.slice(startIndex, endIndex);
-};
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return data.slice(startIndex, endIndex);
+  };
   const safeDateParse = (dateString) => {
     if (!dateString) return null;
     const date = new Date(dateString);
     return isNaN(date.getTime()) ? null : date;
   };
-const closeStatusPopup = () => {
-  setShowStatusPopup(false);
-  setFilteredByStatus(null);
-  setCurrentPage(1);
-};
+  const closeStatusPopup = () => {
+    setShowStatusPopup(false);
+    setFilteredByStatus(null);
+    setCurrentPage(1);
+  };
 
   const fetchPaginatedData = async (url, params, isPlainte = false) => {
     const queryUrl = new URL(url);
@@ -192,73 +249,73 @@ const closeStatusPopup = () => {
     const response = await fetch(queryUrl.toString());
     return response.json();
   };
-const filterDataByStatus = (statusType, dataTypeToUse = dataType) => {
-  setCurrentPage(1); 
-  if (!statusFullData) {
-    console.warn("Status full data not loaded yet");
-    return;
-  }
+  const filterDataByStatus = (statusType, dataTypeToUse = dataType) => {
+    setCurrentPage(1);
+    if (!statusFullData) {
+      console.warn("Status full data not loaded yet");
+      return;
+    }
 
-  const centerMapOnFirstItem = (dataArray) => {
-    const first = dataArray[0];
-    if (first?.LATITUDE_SITE && first?.LONGITUDE_SITE) {
-      setClickedPosition({
-        lat: parseFloat(first.LATITUDE_SITE),
-        lng: parseFloat(first.LONGITUDE_SITE)
+    const centerMapOnFirstItem = (dataArray) => {
+      const first = dataArray[0];
+      if (first?.LATITUDE_SITE && first?.LONGITUDE_SITE) {
+        setClickedPosition({
+          lat: parseFloat(first.LATITUDE_SITE),
+          lng: parseFloat(first.LONGITUDE_SITE)
+        });
+      }
+    };
+
+    // Toujours utiliser le dataType passé en paramètre (ou le dataType courant par défaut)
+    if (dataTypeToUse === 'both') {
+      const activationData = statusFullData.activations?.[statusType] || [];
+      const plainteData = statusFullData.plaintes?.[statusType] || [];
+
+      setMapDisplayData({
+        activations: activationData,
+        plaintes: plainteData,
+        resiliations: []
       });
+
+      setFilteredByStatus({
+        statusType,
+        dataType: 'both',
+        data: [...activationData, ...plainteData]
+      });
+
+      setShowStatusPopup(true);
+      centerMapOnFirstItem([...activationData, ...plainteData]);
+    } else if (dataTypeToUse === 'plainte') {
+      const plainteData = statusFullData.plaintes?.[statusType] || [];
+      setMapDisplayData({
+        activations: [],
+        plaintes: plainteData,
+        resiliations: []
+      });
+      setFilteredByStatus({
+        statusType,
+        dataType: 'plainte',
+        data: plainteData
+      });
+      setShowStatusPopup(true);
+      centerMapOnFirstItem(plainteData);
+    } else {
+      // Activation
+      const activationData = statusFullData.activations?.[statusType] || [];
+      setMapDisplayData({
+        activations: activationData,
+        plaintes: [],
+        resiliations: []
+      });
+      setFilteredByStatus({
+        statusType,
+        dataType: 'activation',
+        data: activationData
+      });
+      setShowStatusPopup(true);
+      centerMapOnFirstItem(activationData);
     }
   };
-
-  // Toujours utiliser le dataType passé en paramètre (ou le dataType courant par défaut)
-  if (dataTypeToUse === 'both') {
-    const activationData = statusFullData.activations?.[statusType] || [];
-    const plainteData = statusFullData.plaintes?.[statusType] || [];
-    
-    setMapDisplayData({
-      activations: activationData,
-      plaintes: plainteData,
-      resiliations: [] 
-    });
-
-    setFilteredByStatus({
-      statusType,
-      dataType: 'both',
-      data: [...activationData, ...plainteData]
-    });
-
-    setShowStatusPopup(true);
-    centerMapOnFirstItem([...activationData, ...plainteData]);
-  } else if (dataTypeToUse === 'plainte') {
-    const plainteData = statusFullData.plaintes?.[statusType] || [];
-    setMapDisplayData({
-      activations: [],
-      plaintes: plainteData,
-      resiliations: []
-    });
-    setFilteredByStatus({
-      statusType,
-      dataType: 'plainte',
-      data: plainteData
-    });
-    setShowStatusPopup(true);
-    centerMapOnFirstItem(plainteData);
-  } else {
-    // Activation
-    const activationData = statusFullData.activations?.[statusType] || [];
-    setMapDisplayData({
-      activations: activationData,
-      plaintes: [],
-      resiliations: []
-    });
-    setFilteredByStatus({
-      statusType,
-      dataType: 'activation',
-      data: activationData
-    });
-    setShowStatusPopup(true);
-    centerMapOnFirstItem(activationData);
-  }
-};
   useEffect(() => {
     const fetchAllActivations = async () => {
       setIsLoading(true);
@@ -294,124 +351,143 @@ const filterDataByStatus = (statusType, dataTypeToUse = dataType) => {
     fetchAllActivations();
   }, []);
 
-useEffect(() => {
-  const fetchStatusCounts = async () => {
+  useEffect(() => {
+    const fetchStatusCounts = async () => {
       setIsLoadingStatusData(true);
-    try {
-      const endpoints = ['frozen', 'non_affected', 'En_rdv', 'En_travaux'];
-      const requests = [];
-      
-      endpoints.forEach(endpoint => {
-        requests.push(
-          fetch(`${BASE_API_URL}/plainte/${endpoint}`)
-            .then(async res => {
-              if (!res.ok) throw new Error(`Failed to fetch ${endpoint} plaintes`);
-              const responseData = await res.json();
-              return {
-                type: 'plaintes',
-                endpoint,
-                count: responseData.count,
-                fullData: responseData.data || []
-              };
-            })
-            .catch(error => {
-              console.error(`Error fetching ${endpoint} plaintes:`, error);
-              return {
-                type: 'plaintes',
-                endpoint,
-                count: 0,
-                fullData: []
-              };
-            })
-        );
-      });
+      try {
+        const endpoints = ['frozen', 'non_affected', 'En_rdv', 'En_travaux'];
+        const requests = [];
 
-      endpoints.forEach(endpoint => {
-        requests.push(
-          fetch(`${BASE_API_URL}/activation/${endpoint}`)
-            .then(async res => {
-              if (!res.ok) throw new Error(`Failed to fetch ${endpoint} activations`);
-              const responseData = await res.json();
-              return {
-                type: 'activations',
-                endpoint,
-                count: responseData.count,
-                fullData: responseData.data || []
-              };
-            })
-            .catch(error => {
-              console.error(`Error fetching ${endpoint} activations:`, error);
-              return {
-                type: 'activations',
-                endpoint,
-                count: 0,
-                fullData: []
-              };
-            })
-        );
-      });
+        endpoints.forEach(endpoint => {
+          requests.push(
+            fetch(`${BASE_API_URL}/plainte/${endpoint}`)
+              .then(async res => {
+                if (!res.ok) throw new Error(`Failed to fetch ${endpoint} plaintes`);
+                const responseData = await res.json();
+                return {
+                  type: 'plaintes',
+                  endpoint,
+                  count: responseData.count,
+                  fullData: responseData.data || []
+                };
+              })
+              .catch(error => {
+                console.error(`Error fetching ${endpoint} plaintes:`, error);
+                return {
+                  type: 'plaintes',
+                  endpoint,
+                  count: 0,
+                  fullData: []
+                };
+              })
+          );
+        });
 
-      const results = await Promise.all(requests);
-      const newCounts = { activations: {}, plaintes: {} };
-      const fullData = { 
-        activations: { frozen: [], non_affected: [], En_rdv: [], En_travaux: [] },
-        plaintes: { frozen: [], non_affected: [], En_rdv: [], En_travaux: [] }
-      };
+        endpoints.forEach(endpoint => {
+          requests.push(
+            fetch(`${BASE_API_URL}/activation/${endpoint}`)
+              .then(async res => {
+                if (!res.ok) throw new Error(`Failed to fetch ${endpoint} activations`);
+                const responseData = await res.json();
+                return {
+                  type: 'activations',
+                  endpoint,
+                  count: responseData.count,
+                  fullData: responseData.data || []
+                };
+              })
+              .catch(error => {
+                console.error(`Error fetching ${endpoint} activations:`, error);
+                return {
+                  type: 'activations',
+                  endpoint,
+                  count: 0,
+                  fullData: []
+                };
+              })
+          );
+        });
 
-      results.forEach(result => {
-        newCounts[result.type][result.endpoint] = result.count;
-        fullData[result.type][result.endpoint] = result.fullData;
-      });
+        const results = await Promise.all(requests);
+        const newCounts = { activations: {}, plaintes: {} };
+        const fullData = {
+          activations: { frozen: [], non_affected: [], En_rdv: [], En_travaux: [] },
+          plaintes: { frozen: [], non_affected: [], En_rdv: [], En_travaux: [] }
+        };
 
-      setStatusCounts(newCounts);
-      setStatusFullData(fullData);
-    } catch (error) {
-      console.error('Error fetching status counts:', error);
+        results.forEach(result => {
+          newCounts[result.type][result.endpoint] = result.count;
+          fullData[result.type][result.endpoint] = result.fullData;
+        });
+
+        setStatusCounts(newCounts);
+        setStatusFullData(fullData);
+      } catch (error) {
+        console.error('Error fetching status counts:', error);
+      }
+    };
+
+    fetchStatusCounts();
+  }, []);
+
+  const [statusFullData, setStatusFullData] = useState({
+    activations: {
+      frozen: { count: 0, data: [] },
+      non_affected: { count: 0, data: [] },
+      En_rdv: { count: 0, data: [] },
+      En_travaux: { count: 0, data: [] }
+    },
+    plaintes: {
+      frozen: { count: 0, data: [] },
+      non_affected: { count: 0, data: [] },
+      En_rdv: { count: 0, data: [] },
+      En_travaux: { count: 0, data: [] }
     }
-  };
-
-  fetchStatusCounts();
-}, []);
-
-const [statusFullData, setStatusFullData] = useState({
-  activations: {
-    frozen: { count: 0, data: [] },
-    non_affected: { count: 0, data: [] },
-    En_rdv: { count: 0, data: [] },
-    En_travaux: { count: 0, data: [] }
-  },
-  plaintes: {
-    frozen: { count: 0, data: [] },
-    non_affected: { count: 0, data: [] },
-    En_rdv: { count: 0, data: [] },
-    En_travaux: { count: 0, data: [] }
-  }
-});
-const [statusPagination, setStatusPagination] = useState({
-  currentPage: 1,
-  totalPages: 1,
-  totalItems: 0
-});
+  });
+  const [statusPagination, setStatusPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0
+  });
 
 
   useEffect(() => {
     const fetchSttData = async () => {
       try {
-        const [activationsRes, plaintesRes] = await Promise.all([
-          fetch(`${BASE_API_URL}/activation/in-progress-by-company`),
-          fetch(`${BASE_API_URL}/plainte/in-progress-by-company`)
+        // Déterminer la période en fonction des dates sélectionnées
+        let period = 'all';
+        if (selectedDate) {
+          period = 'day';
+        } else if (startDate && endDate) {
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          const diffTime = Math.abs(end - start);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          if (diffDays <= 7) period = 'week';
+          else if (diffDays <= 30) period = 'month';
+          else period = 'custom';
+        }
+
+        const [activationRes, plainteRes, resiliationRes] = await Promise.all([
+          fetch(`${BASE_API_URL}/activation/sla/stt?period=${period}`),
+          fetch(`${BASE_API_URL}/plainte/sla/stt?period=${period}`),
+          fetch(`${BASE_API_URL}/resiliation/sla/stt?period=${period}`)
         ]);
 
-        const activationsData = await activationsRes.json();
-        const plaintesData = await plaintesRes.json();
+        const activationData = await activationRes.json();
+        const plainteData = await plainteRes.json();
+        const resiliationData = await resiliationRes.json();
 
-        setSttActivations(activationsData);
-        setSttPlaintes(plaintesData);
+        setSttData({
+          activation: activationData,
+          plainte: plainteData,
+          resiliation: resiliationData
+        });
       } catch (error) {
-        console.error('Error fetching STT data:', error);
+        console.error('Error fetching STT SLA data:', error);
       }
     };
-
     fetchSttData();
   }, [dataType, selectedDate, startDate, endDate]);
   useEffect(() => {
@@ -646,17 +722,32 @@ const [statusPagination, setStatusPagination] = useState({
         <NavbarVertical isVisible={isNavbarVisible} toggleNavbar={toggleNavbar} />
         <div className={`zm-main ${isNavbarVisible ? 'nav-expanded' : 'nav-collapsed'}`}>
           <div className="zm-tabDashs">
-            <button
-              className={`zm-tabDash ${activeTab === 'map' ? 'active' : ''}`}
-              onClick={() => setActiveTab('map')}
+           <button
+              className={`zm-tabDash ${activeTab === 'map' && !showCriticalCases ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('map');
+                setShowCriticalCases(false);
+              }}
             >
               Carte
             </button>
             <button
-              className={`zm-tabDash ${activeTab === 'stats' ? 'active' : ''}`}
-              onClick={() => setActiveTab('stats')}
+              className={`zm-tabDash ${activeTab === 'stats' && !showCriticalCases ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('stats');
+                setShowCriticalCases(false);
+              }}
             >
-              Statistiques STT
+              SLA Statistiques
+            </button>
+            <button
+              className={`zm-tabDash ${showCriticalCases ? 'active' : ''}`}
+              onClick={() => {
+                setShowCriticalCases(true);
+                setActiveTab(null);
+              }}
+            >
+              SLA Critiques
             </button>
             <div className="search-filter_act">
               <SearchBar2
@@ -760,7 +851,7 @@ const [statusPagination, setStatusPagination] = useState({
             )}
           </div>
 
-          {showFilter && (
+          {activeTab === 'map' && showFilter && (
             <FilterComponent
               filterType={filterType}
               setFilterType={setFilterType}
@@ -781,136 +872,163 @@ const [statusPagination, setStatusPagination] = useState({
             <div className="map-and-stats-container">
               <div className="map-and-cards-row">
                 <div className="map-container">
-           <MapComponent
-  clickedPosition={clickedPosition}
-  setClickedPosition={setClickedPosition}
-  onGouvernoratSelect={handleGouvernoratSelect}
-  filteredActivations={mapDisplayData.activations}
-  filteredPlaintes={mapDisplayData.plaintes}
-  filteredResiliations={mapDisplayData.resiliations}
-  dataType={dataType}
-/>
-                </div>
-               <div className="status-cards-wrapper">
-  <StatusCardsComponent 
-  data={statusCounts} 
-  dataType={dataType} 
-  onStatusClick={(statusType, action) => {
-    if (action === 'reset') {
-      setGouvernorat(null);
-      showDefaultMapData();
-    } else {
-      filterDataByStatus(statusType, dataType);
-    }
+                  <MapComponent
+                    clickedPosition={clickedPosition}
+                    setClickedPosition={setClickedPosition}
+                    onGouvernoratSelect={handleGouvernoratSelect}
+                    filteredActivations={mapDisplayData.activations}
+                    filteredPlaintes={mapDisplayData.plaintes}
+                    filteredResiliations={mapDisplayData.resiliations}
+                    dataType={dataType}
+                       onMarkerClick={(clientData) => {
+    console.log('Marker clicked, client data:', clientData);
+    setSelectedClient(clientData);
+    setShowClientPopup(true);
+    setClickedPosition({
+      lat: clientData.lat,
+      lng: clientData.lng
+    });
   }}
-  gouvernorat={gouvernorat}
-/>
-</div>
-             {showStatusPopup && filteredByStatus?.data && (
-  <div className="status-popup-overlayDash">
-    <div className="status-popup">
-      <div className="popup-headerDash">
-        <h3>Détails des demandes - Statut : {filteredByStatus.statusType}</h3>
-        <button className="close-btnDash" onClick={closeStatusPopup}>×</button>
-      </div>
 
-      <div className="status-results-container">
-        <div className="results-section">
-          <h4>
-            {filteredByStatus.dataType === 'activations'
-              ? 'Activations'
-              : filteredByStatus.dataType === 'plaintes'
-              ? 'Plaintes'
-              : 'Toutes demandes'} 
-            ({filteredByStatus.data.length})
-          </h4>
-
-          <div className="results-table-container">
-            <table className="results-table">
-              <thead>
-                <tr>
-                  <th>Client</th>
-                  <th>MSISDN</th>
-                  <th>Contact</th>
-                  <th>Gouvernorat</th>
-                  <th>STT</th>
-                  <th>Date Création</th>
-                </tr>
-              </thead>
-              <tbody>
-                {getCurrentItems(filteredByStatus.data).map((item, index) => (
-                  <tr
-                    key={index}
-                    onClick={() => {
-                      setSelectedClient(item);
-                      setShowClientPopup(true);
-                      if (item.LATITUDE_SITE && item.LONGITUDE_SITE) {
-                        setClickedPosition({
-                          lat: parseFloat(item.LATITUDE_SITE),
-                          lng: parseFloat(item.LONGITUDE_SITE),
-                        });
+                  />
+                </div>
+                <div className="status-cards-wrapper">
+                  <StatusCardsComponent
+                    data={statusCounts}
+                    dataType={dataType}
+                    onStatusClick={(statusType, action) => {
+                      if (action === 'reset') {
+                        setGouvernorat(null);
+                        showDefaultMapData();
+                      } else {
+                        filterDataByStatus(statusType, dataType);
                       }
                     }}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <td>{item.CLIENT}</td>
-                    <td>{item.MSISDN}</td>
-                    <td>{item.CONTACT_CLIENT}</td>
-                    <td>{item.Gouvernorat}</td>
-                    <td>{item.NAME_STT}</td>
-                    <td>
-                      {safeDateParse(item.DATE_CREATION_CRM)?.toLocaleString() || 'N/A'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    gouvernorat={gouvernorat}
+                  />
+                </div>
+                {showStatusPopup && filteredByStatus?.data && (
+                  <div className="status-popup-overlayDash">
+                    <div className="status-popup">
+                      <div className="popup-headerDash">
+                        <h3>Détails des demandes - Statut : {filteredByStatus.statusType}</h3>
+                        <button className="close-btnDash" onClick={closeStatusPopup}>×</button>
+                      </div>
+                      <div className="status-results-container">
+                        <div className="results-section">
+                          <div className="results-header">
+                            <h4>
+                              {filteredByStatus.dataType === 'activations'
+                                ? 'Activations'
+                                : filteredByStatus.dataType === 'plaintes'
+                                  ? 'Plaintes'
+                                  : 'Toutes demandes'}
+                              ({filteredByStatus.data.length})
+                            </h4>
+                            <button
+                              className="export-button"
+                              onClick={() => handleExport(filteredByStatus.data)}
+                            >
+                              Exporter en Excel
+                            </button>
+                          </div>
 
-          {/* Pagination controls */}
-          <div className="pagination-controls">
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              Précédent
-            </button>
-            <span>
-              Page {currentPage} sur {Math.ceil(filteredByStatus.data.length / itemsPerPage)}
-            </span>
-            <button 
-              onClick={() => setCurrentPage(prev =>
-                Math.min(prev + 1, Math.ceil(filteredByStatus.data.length / itemsPerPage))
-              )}
-              disabled={currentPage === Math.ceil(filteredByStatus.data.length / itemsPerPage)}
-            >
-              Suivant
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+
+                          <div className="results-table-container">
+                            <table className="results-table">
+                              <thead>
+                                <tr>
+                                  <th>Cas crm</th>
+                                  <th>Client</th>
+                                  <th>MSISDN</th>
+                                  <th>Contact</th>
+                                  <th>Gouvernorat</th>
+                                  <th>STT</th>
+                                  <th>date affectation STT</th>
+                                  <th>STATUT</th>
+                                  <th>REP travaux</th>
+
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {getCurrentItems(filteredByStatus.data).map((item, index) => (
+                                  <tr
+                                    key={index}
+                                    onClick={() => {
+                                      setSelectedClient(item);
+                                      setShowClientPopup(true);
+                                      if (item.LATITUDE_SITE && item.LONGITUDE_SITE) {
+                                        setClickedPosition({
+                                          lat: parseFloat(item.LATITUDE_SITE),
+                                          lng: parseFloat(item.LONGITUDE_SITE),
+                                        });
+                                      }
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                  >
+                                    <td>{item.crm_case}</td>
+                                    <td>{item.CLIENT}</td>
+                                    <td>{item.MSISDN}</td>
+                                    <td>{item.CONTACT_CLIENT}</td>
+                                    <td>{item.Gouvernorat}</td>
+                                    <td>{item.NAME_STT}</td>
+                                    <td>{item.DATE_AFFECTATION_STT}</td>
+                                    <td>{item.STATUT}</td>
+                                    <td>{item.REP_TRAVAUX_STT}</td>
+
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          <div className="pagination-controls">
+                            <button
+                              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                              disabled={currentPage === 1}
+                            >
+                              Précédent
+                            </button>
+                            <span>
+                              Page {currentPage} sur {Math.ceil(filteredByStatus.data.length / itemsPerPage)}
+                            </span>
+                            <button
+                              onClick={() => setCurrentPage(prev =>
+                                Math.min(prev + 1, Math.ceil(filteredByStatus.data.length / itemsPerPage))
+                              )}
+                              disabled={currentPage === Math.ceil(filteredByStatus.data.length / itemsPerPage)}
+                            >
+                              Suivant
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               </div>
               <div className="stats-container-bottom">
                 <GouvDashboardStats data={statusCounts} dataType={dataType} onStatusClick={filterDataByStatus} />
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'stats' ? (
             <div className="zm-stt-stats">
-              {sttData && (
-                <STTStatisticsComponent
-                  sttData={sttData}
-                  selectedDate={selectedDate}
-                  startDate={startDate}
-                  endDate={endDate}
-                />
-              )}
+              <STTStatisticsComponent
+                sttData={sttData}
+                selectedDate={selectedDate}
+                startDate={startDate}
+                endDate={endDate}
+              />
             </div>
-          )}
-
+          ) : showCriticalCases ? (
+            <div className="zm-critical-cases">
+              <CriticalCasesComponent 
+                activeTab="activation"
+                cases={criticalCases.activation || []}
+              />
+            </div>
+          ) : null}
           {showClientPopup && selectedClient && (
             <div className="client-popup-overlayDash">
               <div className="client-popupDash">

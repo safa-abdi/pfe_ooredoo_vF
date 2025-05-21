@@ -17,8 +17,23 @@
   display: flex;
   align-items: center;
 }
+.export-button {
+  background-color: #3d5567;
+  color: white;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 15px;
+  transition: background-color 0.3s ease;
+  display: block;
+  margin-left: auto;
+}
 
-/* Si vous voulez que la SearchBar prenne plus d'espace */
+.export-button:hover {
+  background-color: #c7c8ca;
+}
+
 .search-filter_act .search-bar {
   width: 250px;
   
@@ -423,7 +438,7 @@
 
 .pagination-controls button {
   padding: 8px 16px;
-  background-color: #2587a5;
+  background-color: #0056b3;
   color: white;
   border: none;
   border-radius: 4px;
@@ -447,6 +462,17 @@
   align-items: center;
   justify-content: space-between;
 }
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.results-header h4 {
+  margin: 0;
+}
+
 
 .gouvernorat-filter-indicator span {
   font-weight: bold;
@@ -493,7 +519,7 @@
   box-shadow: 0 0 10px yellow;
 }
 .pagination-controls button:hover:not(:disabled) {
-  background-color: #1a6a85;
+  background-color: #3d5567;
 }
 /* Dans ZMDashboard.css */
 .highlighted-marker {
@@ -533,7 +559,7 @@
 /* Bouton de fermeture */
 .client-popup-overlayDash{
   position: flex;
-  top: 20px;
+  top: 200px;
   right: 25px;
   margin-left: 20px;
   background: none;
@@ -542,6 +568,42 @@
   cursor: pointer;
   color: #666;
   transition: color 0.2s;
+}
+.client-popup-overlayDash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.client-popupDash {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.popup-headerDash {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.close-btnDash {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
 }
 .results-container {
   padding: 0;

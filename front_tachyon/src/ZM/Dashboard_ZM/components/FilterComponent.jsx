@@ -9,7 +9,7 @@ const FilterComponent = ({
   errorMessage, setErrorMessage,
   dataType, setDataType
 }) => {
-  const [isVisible, setIsVisible] = useState(false); // Déjà initialisé à false
+  const [isVisible, setIsVisible] = useState(false);
 
   const handleStartDateChange = (e) => {
     const newStartDate = e.target.value;
@@ -29,7 +29,6 @@ const FilterComponent = ({
       return;
     }
     
-    // Validation de la période (max 1 mois)
     if (startDate) {
       const startDateObj = new Date(startDate);
       const endDateObj = new Date(newEndDate);

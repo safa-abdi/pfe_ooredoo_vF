@@ -28,6 +28,9 @@ const Gstock = () => {
   const [filterDate, setFilterDate] = useState('');
   const [filterState, setFilterState] = useState('');
 
+  const ooredooCompany = allcompanies.find(c => c.name === "Ooredoo");
+  const ooredooCompanyId = ooredooCompany ? ooredooCompany.id : null;
+
   const fetchStockData = async () => {
     try {
       const response = await fetch('http://localhost:3000/stock');
@@ -48,15 +51,14 @@ const Gstock = () => {
       
       const data = await response.json();
       
-      // Transformation améliorée avec toutes les infos nécessaires
       const transformedProducts = data.map(item => ({
         id: item.product.id,
         name: item.product.name,
         reference: item.product.reference,
         description: item.product.description,
-        quantity: item.quantity, // Conserver la quantité
+        quantity: item.quantity,
         status: item.status,
-        companyId: item.company.id // Au cas où
+        companyId: item.company.id
       }));
       
       setSTTProducts(transformedProducts);
@@ -137,76 +139,78 @@ const Gstock = () => {
   }
 
   return (
-    <div className="container">
+    <div className="containerStock">
       <NavbarHorizontal />
       <div className="main-contentOO">
         <NavbarVertical 
           isVisible={isNavbarVisible} 
           toggleNavbar={() => setIsNavbarVisible(!isNavbarVisible)} 
         />
-        <div className="stock-container">
-          <div className="view-selection">
-            <button 
-              onClick={() => setViewStock('global')} 
-              className={viewStock === 'global' ? 'active' : ''}
-            >
-              Stock Ooredoo
-            </button>
-            <button 
-              onClick={() => setViewStock('stt')} 
-              className={viewStock === 'stt' ? 'active' : ''}
-            >
-              Stock Sous-traitants
-            </button>
-            <button 
-              onClick={() => setViewStock('Mvt')} 
-              className={viewStock === 'Mvt' ? 'active' : ''}
-            >
-              Mouvements de stock
-            </button>
-          </div>
+        <div className="browser-tabs">
+  <div className="tab-bar">
+    <button 
+      className={`tab ${viewStock === 'global' ? 'active' : ''}`} 
+      onClick={() => setViewStock('global')}
+    >
+      Stock Ooredoo
+    </button>
+    <button 
+      className={`tab ${viewStock === 'stt' ? 'active' : ''}`} 
+      onClick={() => setViewStock('stt')}
+    >
+      Stock Sous-traitants
+    </button>
+    <button 
+      className={`tab ${viewStock === 'Mvt' ? 'active' : ''}`} 
+      onClick={() => setViewStock('Mvt')}
+    >
+      Mouvements de stock
+    </button>
+  </div>
 
-          {viewStock === 'global' && (
-            <GlobalStockView 
-              products={products}
-              fetchStockData={fetchStockData}
-              ooredooProducts={ooredooProducts}
-            />
-          )}
+  {/* Zone de contenu sous l'onglet */}
+  <div className="tab-content">
+    {viewStock === 'global' && (
+      <GlobalStockView 
+        products={products}
+        fetchStockData={fetchStockData}
+        ooredooProducts={ooredooProducts}
+        companyId={ooredooCompanyId}
+      />
+    )}
 
-          {viewStock === 'stt' && (
-            <SubcontractorStockView 
-            
-              companies={companies}
-              packs={packs}
-              selectedSubcontractor={selectedSubcontractor}
-              setSelectedSubcontractor={setSelectedSubcontractor}
-              fetchPacks={fetchPacks}
-              ooredooProducts={ooredooProducts}
-              STTProducts={STTProducts}
-            />
-          )}
+    {viewStock === 'stt' && (
+      <SubcontractorStockView 
+        companies={companies}
+        packs={packs}
+        selectedSubcontractor={selectedSubcontractor}
+        setSelectedSubcontractor={setSelectedSubcontractor}
+        fetchPacks={fetchPacks}
+        ooredooProducts={ooredooProducts}
+        STTProducts={STTProducts}
+      />
+    )}
 
-          {viewStock === 'Mvt' && (
-            <StockMovementsView 
-              allmvmnt={allmvmnt}
-              allcompanies={allcompanies}
-              filterEmetteur={filterEmetteur}
-              setFilterEmetteur={setFilterEmetteur}
-              filterRecepteur={filterRecepteur}
-              setFilterRecepteur={setFilterRecepteur}
-              filterDate={filterDate}
-              setFilterDate={setFilterDate}
-              filterState={filterState}
-              setFilterState={setFilterState}
-              fetchStockData={fetchStockData}
-              fetchMvmntData={fetchMvmntData}
-              filterMvtType={filterMvtType}         
-              setFilterMvtType={setFilterMvtType}
-          
-            />
-          )}
-        </div>
+    {viewStock === 'Mvt' && (
+      <StockMovementsView 
+        allmvmnt={allmvmnt}
+        allcompanies={allcompanies}
+        filterEmetteur={filterEmetteur}
+        setFilterEmetteur={setFilterEmetteur}
+        filterRecepteur={filterRecepteur}
+        setFilterRecepteur={setFilterRecepteur}
+        filterDate={filterDate}
+        setFilterDate={setFilterDate}
+        filterState={filterState}
+        setFilterState={setFilterState}
+        fetchStockData={fetchStockData}
+        fetchMvmntData={fetchMvmntData}
+        filterMvtType={filterMvtType}         
+        setFilterMvtType={setFilterMvtType}
+      />
+    )}
+  </div>
+</div>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 
 @Entity()
 export class History {
+  [x: string]: any;
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

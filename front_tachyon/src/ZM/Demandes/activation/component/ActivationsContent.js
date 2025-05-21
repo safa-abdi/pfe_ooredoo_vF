@@ -2,6 +2,7 @@ import React, { useState , useEffect} from 'react';
 import SearchBar from './SearchBar';
 import Pagination from './Pagination';
 import ActivationList from './ActivationList';
+import { BASE_API_URL } from '../../../../config';
 
 const ActivationsContent = ({
   activations,
@@ -16,8 +17,8 @@ const ActivationsContent = ({
   onFilterChange,
   onPageChange,
   onActivationClick,
-  setSelectedActivations
-
+  setSelectedActivations,
+onExportRequest
 }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedGouv, setSelectedGouv] = useState(false);
@@ -32,6 +33,7 @@ const ActivationsContent = ({
   const toggleFilters = () => {
     setShowFilters((prev) => !prev);
   };
+  
 
   const filteredActivations = activations.filter(
     (activation) =>
@@ -146,12 +148,16 @@ useEffect(() => {
            </div>
            
          </div>
+         
        </div>
+       
      </div>
       )}
-      <ActivationList activations={filteredActivations} Gouv={selectedGouv} isselectedGouv={isselectedGouv} 
+
+      <ActivationList activations={filteredActivations}  Gouv={selectedGouv} isselectedGouv={isselectedGouv} 
       createdDeleg={createdDeleg} onActivationClick={onActivationClick} 
-      setSelectedActivations={setSelectedActivations}
+      setSelectedActivations={setSelectedActivations} onExportRequest={onExportRequest}
+
       />
       <Pagination page={page} total={total} limit={limit} onPageChange={onPageChange} />
     </div>
