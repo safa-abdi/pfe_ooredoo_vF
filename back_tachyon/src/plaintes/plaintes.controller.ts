@@ -104,7 +104,18 @@ export class PlainteController {
       end,
     );
   }
-
+  @Put('assign-delegation')
+  async assignDelegation(
+    @Body('plainteIds') plainteIds: number[],
+    @Body('technicianId') technicianId: number,
+    @Body('companyId') companyId: number,
+  ): Promise<Plainte[]> {
+    return this.plaintesService.assignTechnicianToActivations(
+      plainteIds,
+      technicianId,
+      companyId,
+    );
+  }
   @Get('inProgress')
   async findAllInProgress(
     @Query('cursor') cursor?: string,
