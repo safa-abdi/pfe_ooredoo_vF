@@ -187,7 +187,7 @@ export class StockService {
       ...stock,
       status: this.getStockStatus(
         stock.quantity,
-        stock.product.lowThreshold ?? 10, // Utilise les seuils du produit
+        stock.product.lowThreshold ?? 10,
         stock.product.mediumThreshold ?? 50,
       ),
       lowThreshold: stock.product.lowThreshold ?? 10,
