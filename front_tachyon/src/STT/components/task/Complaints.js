@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import useUserData from "../hooks/useUserData";
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
+import useUserData from "../hooks/useUserData";
+
 import 'leaflet/dist/leaflet.css';
 // Icons
 import {
@@ -30,7 +31,7 @@ L.Icon.Default.mergeOptions({
 });
 
 
-const Complaints = ({ companyId, filters }) => {
+const Complaints = ({ companyId, filters, user }) => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,8 +44,6 @@ const Complaints = ({ companyId, filters }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [technicianStatusCounts, setTechnicianStatusCounts] = useState({});
-
-  const { user } = useUserData();
 
   const handleRowClick = (task) => {
     setSelectedTask(task);
@@ -126,7 +125,7 @@ const Complaints = ({ companyId, filters }) => {
             <p className={`availability ${tech.disponibilité ? 'available' : 'unavailable'}`}>
               {tech.disponibilité ? 'Disponible' : 'Non disponible'}
             </p>
-            <p><strong>Activations en cours:</strong> {technicianStatusCounts[tech.id] || 0}</p>
+            <p><strong>Activations en courss:</strong> {technicianStatusCounts[tech.id] || 0}</p>
           </div>
           {selectedTechnician?.id === tech.id && <FiCheck className="check-icon" />}
         </div>
@@ -166,7 +165,6 @@ const Complaints = ({ companyId, filters }) => {
   };
   const fetchTechnicians = async () => {
     try {
-      console.log("compId k",user.company.id)
       const response = await axios.get(
         `http://localhost:3000/branches/${user.company.id}/technicians-by-gov`
       );
@@ -181,6 +179,7 @@ const Complaints = ({ companyId, filters }) => {
       setTechnicians({});
     }
   };
+  console.log("compId k",user.company.id)
 
   const fetchTechnicianStatusCounts = async (governorate, sttId) => {
     try {
