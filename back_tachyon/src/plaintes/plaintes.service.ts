@@ -300,8 +300,38 @@ export class PlainteService {
 
     const data = await query.getMany();
     const nextCursor = data.length ? data[data.length - 1].crm_case : null;
-    console.log('totale', data.length);
+    console.log('totale s', data.length);
     return { data, nextCursor };
+  }
+  async assignTechnicianToActivations(
+    plainteIds: number[],
+    technicianId: number,
+    companyId: number,
+  ): Promise<Plainte[]> {
+    const plaintesToUpdate = await this.PlainteRepository.findByIds(plainteIds);
+
+    if (plaintesToUpdate.length === 0) {
+      console.warn('No complaint found for the provided IDs.');
+      return [];
+    }
+
+    const companyDelegation = await this.companyDelegationRepository
+      .createQueryBuilder('cd')
+      .where('cd.companyId = :companyId', { companyId })
+      .andWhere('cd.technicienId = :technicianId', { technicianId })
+      .getOne();
+
+    if (!companyDelegation) {
+      console.warn(
+        `Technician with ID ${technicianId} is not associated with company ${companyId}.`,
+      );
+      return [];
+    }
+
+    for (const plainte of plaintesToUpdate) {
+      plainte.companyDelegation = companyDelegation;
+    }
+    return await this.PlainteRepository.save(plaintesToUpdate);
   }
   async findAllCursorPaginated(
     lastId: string | null = null,
