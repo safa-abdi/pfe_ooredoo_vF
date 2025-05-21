@@ -27,7 +27,55 @@ const StockPage = () => {
       [index]: !prev[index]
     }));
   };
+const [items, setItems] = useState([{ imei_idu: '', imei_odu: '', serial_number: '' }]);
 
+const addItem = () => {
+  setItems([...items, { imei_idu: '', imei_odu: '', serial_number: '' }]);
+};
+
+const removeItem = (index) => {
+  const newItems = [...items];
+  newItems.splice(index, 1);
+  setItems(newItems);
+};
+
+const handleItemChange = (index, field, value) => {
+  const newItems = [...items];
+  newItems[index][field] = value;
+  setItems(newItems);
+};
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  try {
+    const response = await fetch(`http://localhost:3000/stock/${123}/alimenter-items`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        items: items.map(item => ({
+          imei_idu: item.imei_idu,
+          imei_odu: item.imei_odu || undefined,
+          serial_number: item.serial_number
+        }))
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Erreur lors de l\'alimentation du stock');
+    }
+
+    const result = await response.json();
+    alert('Stock alimenté avec succès!');
+    setItems([{ imei_idu: '', imei_odu: '', serial_number: '' }]); // Réinitialiser le formulaire
+    
+  } catch (error) {
+    console.error('Error:', error);
+    alert(error.message);
+  }
+};
   const getGlobalStatus = (movements) => {
     const statuses = movements.map(m => m.etat);
     if (statuses.includes(1)) return "en-rdv";
@@ -268,6 +316,12 @@ const StockPage = () => {
           >
             Demandes de Prélèvement
           </button>
+          <button
+            className={`tab ${activeTab === "alimentation" ? "active" : ""}`}
+            onClick={() => setActiveTab("alimentation")}
+          >
+            Alimentation Stock
+          </button>
         </div>
 
         {apiError && (
@@ -279,6 +333,82 @@ const StockPage = () => {
           </div>
         )}
 
+{activeTab === "alimentation" && (
+  <>
+    <div className="p-4 bg-white rounded-lg shadow">
+      <h2 className="text-xl font-semibold mb-4">Alimenter le Stock</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          {items.map((item, index) => (
+            <div key={index} className="p-4 border rounded-lg space-y-2">
+              <div className="flex justify-between items-center">
+                <h3 className="font-medium">Item {index + 1}</h3>
+                {items.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeItem(index)}
+                    className="text-red-500 text-sm"
+                  >
+                    Supprimer
+                  </button>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">IMEI IDU</label>
+                <input
+                  type="text"
+                  value={item.imei_idu || ''}
+                  onChange={(e) => handleItemChange(index, 'imei_idu', e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">IMEI ODU (optionnel)</label>
+                <input
+                  type="text"
+                  value={item.imei_odu || ''}
+                  onChange={(e) => handleItemChange(index, 'imei_odu', e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Numéro de série</label>
+                <input
+                  type="text"
+                  value={item.serial_number || ''}
+                  onChange={(e) => handleItemChange(index, 'serial_number', e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                  required
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex space-x-4">
+          <button
+            type="button"
+            onClick={addItem}
+            className="px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+          >
+            Ajouter un item
+          </button>
+          
+          <button
+            type="submit"
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+          >
+            Envoyer
+          </button>
+        </div>
+      </form>
+    </div>
+  </>
+)}
         {activeTab === "current" && (
           <>
             <div className="filters">
@@ -462,7 +592,6 @@ const StockPage = () => {
         )}
       </div>
 
-      {/* Modal de confirmation de prélèvement */}
       {showPrelevementModal && (
         <PrelevementModal
           show={showPrelevementModal}
