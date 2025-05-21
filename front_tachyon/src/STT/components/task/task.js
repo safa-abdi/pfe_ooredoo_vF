@@ -135,6 +135,7 @@ const TaskPage = () => {
 
   const fetchTechnicians = async () => {
     try {
+      console.log("company",user.company.id)
       const response = await axios.get(
         `http://localhost:3000/branches/${user.company.id}/technicians-by-gov`
       );
@@ -167,7 +168,6 @@ const TaskPage = () => {
     }
 
     const counts = {};
-
     await Promise.all(
       techniciansForGov.map(async (tech) => {
         try {
@@ -175,9 +175,10 @@ const TaskPage = () => {
             params: {
               technicianId: tech.id,
               Gouv: govKey,
-              sttId:user.company.id,
+              sttId: user.company.id,
             }
           });
+
           if (response.data && Array.isArray(response.data)) {
             const totalCount = response.data.reduce((sum, item) => sum + item.count, 0);
             counts[tech.id] = totalCount;
@@ -514,6 +515,7 @@ const fetchTechniciansForGovernorate = (governorate) => {
     <Complaints 
     companyId={user?.company?.id} 
     filters={filters}
+    user={user}
     />
   );
 
