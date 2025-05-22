@@ -626,127 +626,138 @@ export class StockMovementsService {
       .map(({ bon, movements }) => ({ bon, movements }));
   }
   async createTransferBetweenSTT(
-    createStockMovementDto: CreateStockMovementDto | CreateBulkStockMovementDto,
+    dto: CreateStockMovementDto | CreateBulkStockMovementDto,
   ): Promise<StockMovement | StockMovement[]> {
-    // Handle bulk transfers
-    if ('products' in createStockMovementDto) {
-      const { products, from_company_id, to_company_id, N_Bon_Enlévement_DPM } =
-        createStockMovementDto;
-      const results: StockMovement[] = []; // Properly typed array
-
-      const fromCompany = await this.companyRepository.findOne({
-        where: { id: from_company_id },
-      });
-      const toCompany = await this.companyRepository.findOne({
-        where: { id: to_company_id },
-      });
-
-      if (!fromCompany || !toCompany) {
-        throw new NotFoundException(
-          "Une des entreprises spécifiées n'existe pas",
-        );
-      }
-
-      for (const item of products) {
-        const product = await this.productRepository.findOne({
-          where: { id: item.product_id },
-        });
-        if (!product) {
-          throw new NotFoundException(
-            `Produit avec ID ${item.product_id} non trouvé`,
-          );
-        }
-
-        const fromStock = await this.stockRepository.findOne({
-          where: {
-            company: { id: from_company_id },
-            product: { id: item.product_id },
-          },
-        });
-
-        if (!fromStock || fromStock.quantity < item.quantity) {
-          throw new BadRequestException(
-            `Stock insuffisant pour le produit ${product.name} dans le STT ${fromCompany.name}`,
-          );
-        }
-
-        const transferMovement = this.stockMovementRepository.create({
-          product,
-          fromCompany,
-          toCompany,
-          quantity: item.quantity,
-          movement_type: 'transfert',
-          etat: 0,
-          N_Bon_Enlévement_DPM,
-        });
-
-        fromStock.quantity -= item.quantity;
-        await this.stockRepository.save(fromStock);
-        const savedMovement =
-          await this.stockMovementRepository.save(transferMovement);
-        results.push(savedMovement);
-      }
-
-      return results;
+    if ('products' in dto) {
+      return this.handleBulkTransfer(dto);
     }
-    // Handle single transfer (original implementation)
-    else {
-      const {
-        product_id,
-        from_company_id,
-        to_company_id,
-        quantity,
-        N_Bon_Enlévement_DPM,
-      } = createStockMovementDto;
+    return this.handleSingleTransfer(dto);
+  }
 
-      const fromCompany = await this.companyRepository.findOne({
-        where: { id: from_company_id },
-      });
-      const toCompany = await this.companyRepository.findOne({
-        where: { id: to_company_id },
-      });
+  // -------------------- Méthodes privées --------------------
 
-      if (!fromCompany || !toCompany) {
-        throw new NotFoundException(
-          "Une des entreprises spécifiées n'existe pas",
-        );
-      }
+  private async findCompany(id: number): Promise<Company> {
+    const company = await this.companyRepository.findOne({ where: { id } });
+    if (!company)
+      throw new NotFoundException(`Entreprise avec ID ${id} non trouvée`);
+    return company;
+  }
 
-      const product = await this.productRepository.findOne({
-        where: { id: product_id },
-      });
-      if (!product) {
-        throw new NotFoundException(`Produit avec ID ${product_id} non trouvé`);
-      }
+  private async findProduct(id: number): Promise<Products> {
+    const product = await this.productRepository.findOne({ where: { id } });
+    if (!product)
+      throw new NotFoundException(`Produit avec ID ${id} non trouvé`);
+    return product;
+  }
 
-      const fromStock = await this.stockRepository.findOne({
-        where: {
-          company: { id: from_company_id },
-          product: { id: product_id },
-        },
-      });
+  private async getAndValidateStock(
+    companyId: number,
+    productId: number,
+    quantity: number,
+    productName: string,
+    companyName: string,
+  ): Promise<Stock> {
+    const stock = await this.stockRepository.findOne({
+      where: {
+        company: { id: companyId },
+        product: { id: productId },
+      },
+    });
 
-      if (!fromStock || fromStock.quantity < quantity) {
-        throw new BadRequestException(
-          `Stock insuffisant pour le produit ${product.name} dans le STT ${fromCompany.name}`,
-        );
-      }
+    if (!stock || stock.quantity < quantity) {
+      throw new BadRequestException(
+        `Stock insuffisant pour le produit ${productName} dans le STT ${companyName}`,
+      );
+    }
 
-      const transferMovement = this.stockMovementRepository.create({
+    return stock;
+  }
+
+  private async createMovementAndUpdateStock(
+    product: Products,
+    fromCompany: Company,
+    toCompany: Company,
+    quantity: number,
+    N_Bon_Enlévement_DPM: string,
+  ): Promise<StockMovement> {
+    const fromStock = await this.getAndValidateStock(
+      fromCompany.id,
+      product.id,
+      quantity,
+      product.name,
+      fromCompany.name,
+    );
+
+    const movement = this.stockMovementRepository.create({
+      product,
+      fromCompany,
+      toCompany,
+      quantity,
+      movement_type: 'transfert',
+      etat: 0,
+      N_Bon_Enlévement_DPM,
+    });
+
+    fromStock.quantity -= quantity;
+    await this.stockRepository.save(fromStock);
+
+    return this.stockMovementRepository.save(movement);
+  }
+
+  private async handleBulkTransfer(
+    dto: CreateBulkStockMovementDto,
+  ): Promise<StockMovement[]> {
+    const { from_company_id, to_company_id, N_Bon_Enlévement_DPM, products } =
+      dto;
+
+    const fromCompany = await this.findCompany(from_company_id);
+    const toCompany = await this.findCompany(to_company_id);
+    const results: StockMovement[] = [];
+
+    for (const item of products) {
+      const product = await this.findProduct(item.product_id);
+      const savedMovement = await this.createMovementAndUpdateStock(
         product,
         fromCompany,
         toCompany,
-        quantity,
-        movement_type: 'transfert',
-        etat: 0,
+        item.quantity,
         N_Bon_Enlévement_DPM,
-      });
-
-      fromStock.quantity -= quantity;
-      await this.stockRepository.save(fromStock);
-      return await this.stockMovementRepository.save(transferMovement);
+      );
+      results.push(savedMovement);
     }
+
+    return results;
   }
+
+  private async handleSingleTransfer(
+    dto: CreateStockMovementDto,
+  ): Promise<StockMovement> {
+    const {
+      product_id,
+      from_company_id,
+      to_company_id,
+      quantity,
+      N_Bon_Enlévement_DPM,
+    } = dto;
+
+    const fromCompany = await this.findCompany(from_company_id);
+    const toCompany = await this.findCompany(to_company_id);
+    const product = await this.findProduct(product_id);
+    if (!N_Bon_Enlévement_DPM) {
+      throw new BadRequestException(
+        "Le numéro de bon d'enlèvement est requis.",
+      );
+    }
+
+    return this.createMovementAndUpdateStock(
+      product,
+      fromCompany,
+      toCompany,
+      quantity,
+      N_Bon_Enlévement_DPM,
+    );
+  }
+
   async validateTransfer(transferId: number): Promise<StockMovement> {
     const transfer = await this.stockMovementRepository.findOne({
       where: {

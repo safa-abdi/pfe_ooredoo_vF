@@ -7,6 +7,10 @@ from collections import defaultdict
 import mysql.connector
 from mysql.connector import Error
 
+file_path = './data to clean/Activation_janvFevMars.xlsx'
+workbook = openpyxl.load_workbook(file_path)
+sheet = workbook.active
+
 def connect_to_db():
     try:
         connection = mysql.connector.connect(
@@ -77,9 +81,7 @@ def insert_new_data(connection, data_to_insert):
         print(f"{len(new_records)} nouveaux enregistrements insérés.")
     else:
         print("Aucun nouvel enregistrement à insérer.")
-file_path = './data to clean/Activation_janvFevMars.xlsx'
-workbook = openpyxl.load_workbook(file_path)
-sheet = workbook.active
+
 
 
 def nettoyer_NomClient(chaine):

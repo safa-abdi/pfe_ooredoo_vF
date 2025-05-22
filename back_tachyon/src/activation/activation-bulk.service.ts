@@ -16,7 +16,7 @@ export class ActivationBulkService {
 
   constructor(
     @InjectRepository(Activation)
-    private activationRepo: Repository<Activation>,
+    private readonly activationRepo: Repository<Activation>,
   ) {}
 
   async processAllActivations(batchSize = 1000): Promise<void> {

@@ -1,5 +1,5 @@
 export class ResiliationFrozenDto {
-  crm_case: number;
+  crm_case: string;
   DATE_CREATION_CRM: Date;
   LATITUDE_SITE: number;
   LONGITUDE_SITE: number;

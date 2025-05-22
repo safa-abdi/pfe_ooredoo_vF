@@ -9,7 +9,6 @@ sheet = workbook.active
 
 
 
-
 def separate_numbers(input_str):
     match = re.match(r"(\d+\.\d+)\.(\d+\.\d+)", input_str)
     match100 = re.match(r"(\d+\.\d+)\_(\d+\.\d+)", input_str)

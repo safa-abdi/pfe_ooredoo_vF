@@ -1,4 +1,4 @@
 export class BatchClotureDto {
-  resiliationIds: number[];
+  resiliationIds: string[];
   note: string;
 }

@@ -1,5 +1,5 @@
 export class BatchAssignSttDto {
-  resiliationIds: number[];
+  resiliationIds: string[];
   note: string;
   sttName: string;
   companyId: number;

@@ -3,7 +3,7 @@ import { IsString, IsNumber, IsOptional, IsNotEmpty } from 'class-validator';
 export class UpdateResiliationDto {
   @IsNotEmpty()
   @IsString()
-  crm_case: number;
+  crm_case: string;
 
   @IsOptional()
   @IsString()

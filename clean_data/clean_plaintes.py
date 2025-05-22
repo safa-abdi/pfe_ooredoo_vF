@@ -3,9 +3,11 @@ import openpyxl
 import re
 import requests
 from datetime import datetime,timedelta
+import mysql.connector
+from mysql.connector import Error
+from collections import defaultdict
 
-# Charger le fichier Excel existant
-file_path = './plaintes.xlsx'
+file_path = './data to clean/plaintes.xlsx'
 workbook = openpyxl.load_workbook(file_path)
 sheet = workbook.active
 
@@ -17,6 +19,81 @@ def remove_duplicates(data_list):
     
     unique_data = [data_list[idx] for idx in seen.values()]
     return unique_data
+
+def connect_to_db():
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            database='ooredoo',
+            user='root',
+            password='#Safa@123_#'
+        )
+        return connection
+    except Error as e:
+        print(f"Erreur de connexion à la base de données : {e}")
+        return None
+    
+def check_existing_crms(connection, crm_cases):
+    cursor = connection.cursor()
+    placeholders = ', '.join(['%s'] * len(crm_cases))
+    query = f"SELECT CRM_CASE FROM plainte WHERE CRM_CASE IN ({placeholders})"
+    cursor.execute(query, crm_cases)
+    results = cursor.fetchall()
+    return set(row[0] for row in results)
+def insert_new_data(connection, data_to_insert):
+    cursor = connection.cursor()
+
+    insert_query = """
+    INSERT INTO plainte (
+        CRM_CASE, DATE_CREATION_CRM, LATITUDE_SITE, LONGITUDE_SITE, 
+        MSISDN, CONTACT_CLIENT, CONTACT2_CLIENT, CLIENT, REP_TRAVAUX_STT,
+        NAME_STT, Delegation, Gouvernorat, DATE_AFFECTATION_STT, DES_PACK,
+        offre, OPENING_DATE_SUR_TIMOS, REP_RDV, DATE_PRISE_RDV, CMT_RDV,
+        Detail, STATUT, DATE_FIN_TRV, Description
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+
+    existing_crms = set()
+    if data_to_insert:
+        crm_cases = [entry['CRM_CASE'] for entry in data_to_insert if entry['CRM_CASE']]
+        existing_crms = check_existing_crms(connection, crm_cases)
+
+    new_records = []
+    for entry in data_to_insert:
+        crm_case = entry['CRM_CASE']
+        if crm_case and crm_case not in existing_crms:
+            new_records.append((
+                crm_case,
+                entry['DATE_CREATION_CRM'],
+                entry['LATITUDE_SITE'],
+                entry['LONGITUDE_SITE'],
+                entry['MSISDN'],
+                entry['CONTACT_CLIENT'],
+                entry['CONTACT2_CLIENT'],
+                entry['CLIENT'],
+                entry['REP_TRAVAUX_STT'],
+                entry['NAME_STT'],
+                entry['Delegation'],
+                entry['Gouvernorat'],
+                entry['DATE_AFFECTATION_STT'],
+                entry['DES_PACK'],
+                entry['offre'],
+                entry['OPENING_DATE_SUR_TIMOS'],
+                entry['REP_RDV'],
+                entry['DATE_PRISE_RDV'],
+                entry['CMT_RDV'],
+                entry['Detail'],
+                entry['STATUT'],
+                entry['DATE_FIN_TRV'],
+                entry['Description']
+            ))
+
+    if new_records:
+        cursor.executemany(insert_query, new_records)
+        connection.commit()
+        print(f"{len(new_records)} nouveaux enregistrements insérés.")
+    else:
+        print("Aucun nouvel enregistrement à insérer.")
 
 def generate_sql_insert(data):
     columns = [
@@ -35,7 +112,7 @@ def generate_sql_insert(data):
             values.append('NULL')
         elif col in ['DATE_CREATION_CRM', 'DATE_AFFECTATION_STT', 'OPENING_DATE_SUR_TIMOS', 
                      'DATE_PRISE_RDV', 'DATE_FIN_TRV'] and val:
-            values.append(f"'{val}'")  # pas besoin de TO_DATE pour MySQL
+            values.append(f"'{val}'")
         elif isinstance(val, str):
             val_escaped = val.replace("'", "''")
             values.append(f"'{val_escaped}'")
@@ -65,8 +142,8 @@ def verifierDelegation(deleg):
     return None if "@" in deleg else deleg
 def verifierGouv(gouv):
     if(gouv):
-        return gouv if gouv.isalpha() else "NULL"
-    return "NULL"
+        return gouv if gouv.isalpha() else None
+    return None
 def verif_Nom_STT(stt):
     timestamp_pattern = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}" 
     matchTime= re.search(timestamp_pattern, str(crm_case))
@@ -79,7 +156,7 @@ def verif_Nom_STT(stt):
 
 def verif_date(dateRDV):
     if not dateRDV or dateRDV in ["NULL", "None", ""]:
-        return "NULL"
+        return None
     
     # Convertir en datetime si c'est une chaîne
     if isinstance(dateRDV, str):
@@ -94,7 +171,7 @@ def verif_date(dateRDV):
 def verif_affectation(nomSTT, dateAff, REP_TRAVAUX_STT):
     #print("stt",nomSTT)
     if not nomSTT and not dateAff and not REP_TRAVAUX_STT:
-        return "non_affecté", "NULL", "non_affecté_stt"
+        return "non_affecté", None, "non_affecté_stt"
     return nomSTT, dateAff, REP_TRAVAUX_STT
 
 def verif_dates(OPENING_DATE_SUR_TIMOS, DATE_PRISE_RDV, DATE_FIN_TRV):
@@ -976,6 +1053,29 @@ for row in sheet.iter_rows(min_row=2):
 
                    })
   
+grouped_data = defaultdict(list)
+for entry in cleaned_data:
+    crm_case = entry['CRM_CASE']
+    if crm_case:
+        grouped_data[crm_case].append(entry)
+
+filtered_cleaned_data = []
+
+for crm_case, entries in grouped_data.items():
+    sorted_entries = sorted(
+        entries,
+        key=lambda x: x['DATE_CREATION_CRM'] if isinstance(x['DATE_CREATION_CRM'], datetime) else datetime.min,
+        reverse=True
+    )
+    filtered_cleaned_data.append(sorted_entries[0])
+
+# Connexion à la base et insertion des données
+connection = connect_to_db()
+if connection and filtered_cleaned_data:
+    insert_new_data(connection, filtered_cleaned_data)
+    connection.close()
+elif not filtered_cleaned_data:
+    print("Aucune donnée valide à insérer.")
 
 # Création des fichiers Excel
 new_workbook = openpyxl.Workbook()

@@ -47,13 +47,13 @@ import { CronModule } from './cron/cron.module';
 
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'localhost',
+      host: process.env.DB_HOST || 'localhost',
       port: 3306,
-      username: 'root',
-      password: '#Safa@123_#',
-      database: 'ooredoo',
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME || 'ooredoo',
       autoLoadEntities: true,
-      synchronize: true,
+      synchronize: process.env.NODE_ENV !== 'production',
       entities: [User, Role, Company],
     }),
     MailerModule.forRootAsync({

@@ -13,7 +13,7 @@ export class ResiliationController {
     @Query('search') search?: string,
   ): Promise<{
     data: Resiliation[];
-    nextCursor: number | null;
+    nextCursor: string | null;
     hasMore: boolean;
   }> {
     const lastId = rawLastId && rawLastId.toString() !== '' ? rawLastId : null;

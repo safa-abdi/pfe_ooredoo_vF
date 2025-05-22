@@ -42,7 +42,7 @@ def create_table(cursor):
         LATITUDE_SITE DOUBLE NULL DEFAULT NULL,
         LONGITUDE_SITE DOUBLE NULL DEFAULT NULL,
         MSISDN VARCHAR(20),
-        CONTACT1_CLIENT VARCHAR(100),
+        CONTACT_CLIENT VARCHAR(100),
         CONTACT2_CLIENT VARCHAR(100),
         CLIENT TEXT,
         REP_TRAVAUX_STT TEXT,
@@ -886,7 +886,7 @@ for row in sheet.iter_rows(min_row=2):
     crm_case_cleaned = clean_crm_case(crm_case)
     DATE_CREATION_CRM = row[1].value
     MSISDN = row[4].value
-    CONTACT1_CLIENT = row[3].value
+    CONTACT_CLIENT = row[3].value
     CONTACT2_CLIENT = row[10].value
     client = row[9].value
     description = row[8].value
@@ -968,7 +968,7 @@ for row in sheet.iter_rows(min_row=2):
                   'LONGITUDE_SITE': validated_longitude ,
                   'DATE_CREATION_CRM': DATE_CREATION_CRM,
                   'MSISDN': MSISDN,
-                  'CONTACT1_CLIENT': CONTACT1_CLIENT,
+                  'CONTACT_CLIENT': CONTACT_CLIENT,
                   'CONTACT2_CLIENT': CONTACT2_CLIENT,
                   'CLIENT': client_nettoyé,
                   'REP_TRAVAUX_STT': REP_TRAVAUX_STT,
@@ -996,7 +996,7 @@ for row in sheet.iter_rows(min_row=2):
                   'LONGITUDE_SITE': LONGITUDE_SITE_init ,
                   'DATE_CREATION_CRM': DATE_CREATION_CRM,
                   'MSISDN': MSISDN,
-                  'CONTACT1_CLIENT': CONTACT1_CLIENT,
+                  'CONTACT_CLIENT': CONTACT_CLIENT,
                   'CONTACT2_CLIENT': CONTACT2_CLIENT,
                   'CLIENT': client_nettoyé,
                   'REP_TRAVAUX_STT': REP_TRAVAUX_STT,
@@ -1026,14 +1026,14 @@ new_workbookError = openpyxl.Workbook()
 new_sheetError = new_workbookError.active
 new_sheetError.title = "Erroned Data"
 
-headers = ['CRM_CASE', 'DATE_CREATION_CRM', 'LATITUDE_SITE', 'LONGITUDE_SITE', 'MSISDN', 'CONTACT1_CLIENT','CONTACT2_CLIENT', 'CLIENT','REP_TRAVAUX_STT','STT', 'Delegation', ' Gouvernorat' , 'DATE_AFFECTATION_STT ','DES_PACK',
+headers = ['CRM_CASE', 'DATE_CREATION_CRM', 'LATITUDE_SITE', 'LONGITUDE_SITE', 'MSISDN', 'CONTACT_CLIENT','CONTACT2_CLIENT', 'CLIENT','REP_TRAVAUX_STT','STT', 'Delegation', ' Gouvernorat' , 'DATE_AFFECTATION_STT ','DES_PACK',
            'OPENING_DATE_SUR_TIMOS','REP_RDV','DATE_PRISE_RDV','CMT_RDV','STATUT','DATE_FIN_TRV','Description','Detail','entite']
 new_sheet.append(headers)
 new_sheetError.append(headers)
 
 for data in Erroned_data:
     new_sheetError.append([data['CRM_CASE'], data['DATE_CREATION_CRM'], data['LATITUDE_SITE'], 
-                           data['LONGITUDE_SITE'], data['MSISDN'], data['CONTACT1_CLIENT'],data['CONTACT2_CLIENT'], data['CLIENT'],data['REP_TRAVAUX_STT'], data['STT'] , data['Delegation']
+                           data['LONGITUDE_SITE'], data['MSISDN'], data['CONTACT_CLIENT'],data['CONTACT2_CLIENT'], data['CLIENT'],data['REP_TRAVAUX_STT'], data['STT'] , data['Delegation']
                            ,data['Gouvernorat'],data['DATE_AFFECTATION_STT'],data['DES_PACK'],data['OPENING_DATE_SUR_TIMOS'],data['REP_RDV'],data['DATE_PRISE_RDV'],data['CMT_RDV']
                           ,data['STATUT'],data['DATE_FIN_TRV'],data['Description'],data['Detail'],data['entite']])
 
@@ -1068,7 +1068,7 @@ else:
         insert_query = """
         INSERT INTO resiliation (
             CRM_CASE, DATE_CREATION_CRM, LATITUDE_SITE, LONGITUDE_SITE,
-            MSISDN, CONTACT1_CLIENT, CONTACT2_CLIENT, CLIENT,
+            MSISDN, CONTACT_CLIENT, CONTACT2_CLIENT, CLIENT,
             REP_TRAVAUX_STT, STT, Delegation, Gouvernorat,
             DATE_AFFECTATION_STT, DES_PACK, OPENING_DATE_SUR_TIMOS,
             STATUT, REP_RDV, DATE_PRISE_RDV, CMT_RDV, DATE_FIN_TRV,
@@ -1085,7 +1085,7 @@ else:
                 safe_float(data.get('LATITUDE_SITE')),
                 safe_float(data.get('LONGITUDE_SITE')),
                 data.get('MSISDN'),
-                data.get('CONTACT1_CLIENT'),
+                data.get('CONTACT_CLIENT'),
                 data.get('CONTACT2_CLIENT'),
                 data.get('CLIENT'),
                 data.get('REP_TRAVAUX_STT'),
